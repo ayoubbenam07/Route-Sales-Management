@@ -232,15 +232,3 @@ export const logout = async (req, res) => {
     });
   }
 };
- 
-/**
- * Verify Token (for use in middleware)
- */
-export const verifyToken = (token) => {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    return null;
-  }
-};
