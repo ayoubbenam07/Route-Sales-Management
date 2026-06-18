@@ -20,7 +20,7 @@ export const getAllProducts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error fetching products',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
@@ -73,7 +73,7 @@ export const createProduct = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error creating product',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
@@ -151,7 +151,7 @@ export const putProduct = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error updating product',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
@@ -207,7 +207,7 @@ export const deleteProduct = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error deleting product',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
