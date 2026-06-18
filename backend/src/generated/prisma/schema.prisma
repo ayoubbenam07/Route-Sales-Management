@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS ---
+enum Role {
+  ADMIN
+  BUYER
+}
+
+enum DealStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  TRANSFER
+}
+
+// --- MODELS ---
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  password  String
+  role      Role     @default(BUYER)
+  createdAt DateTime @default(now())
+
+  // Relations
+  deals Deal[] // A buyer can have many deals
+}
+
+model Product {
+  id        String @id @default(uuid())
+  name      String // e.g., "Deglet Nour", "Ghars"
+  basePrice Float // Default price per kg/box
+  stockQty  Float // Current inventory
+
+  // Relations
+  dealItems DealItem[]
+}
+
+model Supermarket {
+  id        String  @id @default(uuid())
+  name      String
+  phone     String
+  address   String?
+  totalDebt Float   @default(0.0) // Cached total debt for quick access
+
+  // Relations
+  deals Deal[]
+}
+
+model Deal {
+  id          String     @id @default(uuid())
+  createdAt   DateTime   @default(now())
+  totalAmount Float // Total cost of all dates in this deal
+  status      DealStatus @default(UNPAID)
+
+  // Foreign Keys
+  buyerId String
+  buyer   User   @relation(fields: [buyerId], references: [id])
+
+  supermarketId String
+  supermarket   Supermarket @relation(fields: [supermarketId], references: [id])
+
+  // Relations
+  items    DealItem[]
+  payments Payment[]
+}
+
+model DealItem {
+  id        String @id @default(uuid())
+  quantity  Float // How many kg/boxes
+  unitPrice Float // The actual price agreed upon for this deal
+
+  // Foreign Keys
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  amount      Float
+  paymentDate DateTime      @default(now())
+  method      PaymentMethod @default(CASH)
+
+  // Foreign Keys
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id])
+}
