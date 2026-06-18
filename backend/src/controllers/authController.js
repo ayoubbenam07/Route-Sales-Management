@@ -76,7 +76,7 @@ export const register = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Registration failed',
-      error: error.message,
+      error: 'Internal server error',
       details: error.meta || error.clientVersion || 'Unknown error'
     });
   }
@@ -144,7 +144,7 @@ export const create_buyer = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Buyer creation failed',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
@@ -204,7 +204,7 @@ export const login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Login failed',
-      error: error.message
+      error: 'Internal server error'
     });
   }
 };
@@ -228,19 +228,7 @@ export const logout = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Logout failed',
-      error: error.message
+      error: 'Internal server error'
     });
-  }
-};
- 
-/**
- * Verify Token (for use in middleware)
- */
-export const verifyToken = (token) => {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    return null;
   }
 };

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import {dbConnection} from './lib/dbConnection.js';
 import authRoutes from './routes/authRoutes.js';
+import productsRoutes from './routes/productsRoutes.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -21,6 +22,7 @@ dbConnection();
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productsRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {
