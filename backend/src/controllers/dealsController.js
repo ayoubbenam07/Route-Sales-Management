@@ -368,3 +368,364 @@ export const getDealById = async (req, res) => {
     });
   }
 };
+
+/**
+ * PUT /api/deals/:id
+ * Update a deal - modify everything (items, supermarket, payments, status)
+ * Access: ADMIN or BUYER (creator only)
+ * 
+ * Body (all optional):
+ * {
+ *   "supermarketId": "uuid",
+ *   "items": [
+ *     { "dealItemId": "uuid", "quantity": 100, "unitPrice": 450 },
+ *     { "productId": "uuid", "quantity": 50, "unitPrice": 600 }
+ *   ],
+ *   "paymentAmount": 5000,
+ *   "paymentMethod": "CASH" | "CHECK" | "TRANSFER",
+ *   "status": "UNPAID" | "PARTIAL" | "PAID"
+ * }
+ */
+export const putDeal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supermarketId, items, paymentAmount, paymentMethod, status } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Fetch the deal
+    const deal = await prisma.deal.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        payments: true,
+        supermarket: true
+      }
+    });
+
+    if (!deal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deal not found'
+      });
+    }
+
+    // Authorization check: Only admin or deal creator can update
+    if (userRole === 'BUYER' && deal.buyerId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins or deal creator can update this deal'
+      });
+    }
+
+    // Use transaction for all updates
+    const updatedDeal = await prisma.$transaction(async (tx) => {
+      let newTotalAmount = deal.totalAmount;
+      let debtAdjustment = 0;
+
+      // 1. Update supermarket if provided
+      if (supermarketId && supermarketId !== deal.supermarketId) {
+        const newSupermarket = await tx.supermarket.findUnique({
+          where: { id: supermarketId }
+        });
+
+        if (!newSupermarket) {
+          throw new Error('New supermarket not found');
+        }
+
+        // Reverse debt from old supermarket
+        await tx.supermarket.update({
+          where: { id: deal.supermarketId },
+          data: {
+            totalDebt: {
+              decrement: deal.totalAmount - (deal.payments.reduce((sum, p) => sum + p.amount, 0))
+            }
+          }
+        });
+      }
+
+      // 2. Update items if provided
+      if (items && Array.isArray(items)) {
+        // Validate items
+        for (const item of items) {
+          if ((!item.dealItemId && !item.productId) || !item.quantity || item.unitPrice === undefined) {
+            throw new Error('Each item must have (dealItemId or productId), quantity, and unitPrice');
+          }
+          if (item.quantity <= 0 || item.unitPrice < 0) {
+            throw new Error('Quantity must be positive and unitPrice must be non-negative');
+          }
+        }
+
+        // Get all current deal items
+        const currentItems = await tx.dealItem.findMany({
+          where: { dealId: id },
+          include: { product: true }
+        });
+
+        // Separate items into updates and new items
+        const itemsToUpdate = items.filter(i => i.dealItemId);
+        const itemsToCreate = items.filter(i => !i.dealItemId && i.productId);
+
+        // Calculate stock adjustments for existing items being modified
+        for (const updateItem of itemsToUpdate) {
+          const currentItem = currentItems.find(ci => ci.id === updateItem.dealItemId);
+          if (currentItem) {
+            const quantityDiff = updateItem.quantity - currentItem.quantity;
+            
+            // Adjust stock
+            if (quantityDiff !== 0) {
+              await tx.product.update({
+                where: { id: currentItem.productId },
+                data: {
+                  stockQty: {
+                    decrement: quantityDiff
+                  }
+                }
+              });
+            }
+
+            // Update deal item
+            await tx.dealItem.update({
+              where: { id: updateItem.dealItemId },
+              data: {
+                quantity: updateItem.quantity,
+                unitPrice: updateItem.unitPrice
+              }
+            });
+          }
+        }
+
+        // Add new items
+        for (const newItem of itemsToCreate) {
+          const product = await tx.product.findUnique({
+            where: { id: newItem.productId }
+          });
+
+          if (!product) {
+            throw new Error(`Product ${newItem.productId} not found`);
+          }
+
+          if (product.stockQty < newItem.quantity) {
+            throw new Error(`Insufficient stock for product ${product.name}`);
+          }
+
+          // Create deal item
+          await tx.dealItem.create({
+            data: {
+              quantity: newItem.quantity,
+              unitPrice: newItem.unitPrice,
+              dealId: id,
+              productId: newItem.productId
+            }
+          });
+
+          // Reduce stock
+          await tx.product.update({
+            where: { id: newItem.productId },
+            data: {
+              stockQty: {
+                decrement: newItem.quantity
+              }
+            }
+          });
+        }
+
+        // Recalculate total amount
+        const updatedItems = await tx.dealItem.findMany({
+          where: { dealId: id }
+        });
+        newTotalAmount = updatedItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      }
+
+      // 3. Add payment if provided
+      if (paymentAmount !== undefined && paymentAmount > 0) {
+        const totalPaid = deal.payments.reduce((sum, p) => sum + p.amount, 0);
+        const remainingBalance = newTotalAmount - totalPaid;
+
+        if (paymentAmount > remainingBalance) {
+          throw new Error(`Payment exceeds remaining balance. Remaining: ${remainingBalance}`);
+        }
+
+        await tx.payment.create({
+          data: {
+            amount: paymentAmount,
+            dealId: id,
+            method: paymentMethod || 'CASH'
+          }
+        });
+      }
+
+      // 4. Update deal with new amount and/or status
+      const updatedPaymentTotal = await tx.payment.aggregate({
+        where: { dealId: id },
+        _sum: { amount: true }
+      });
+
+      const totalPaid = updatedPaymentTotal._sum.amount || 0;
+      const finalStatus = status || (
+        totalPaid >= newTotalAmount ? 'PAID' : 
+        (totalPaid > 0 ? 'PARTIAL' : 'UNPAID')
+      );
+
+      const updated = await tx.deal.update({
+        where: { id },
+        data: {
+          totalAmount: newTotalAmount,
+          status: finalStatus,
+          ...(supermarketId && supermarketId !== deal.supermarketId && { supermarketId })
+        }
+      });
+
+      // 5. Update supermarket debt
+      const newSupermarketId = supermarketId || deal.supermarketId;
+      const newRemainBalance = newTotalAmount - totalPaid;
+
+      await tx.supermarket.update({
+        where: { id: newSupermarketId },
+        data: {
+          totalDebt: {
+            increment: newRemainBalance
+          }
+        }
+      });
+
+      return updated;
+    });
+
+    // Fetch complete updated deal
+    const completeDeal = await prisma.deal.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        },
+        payments: true,
+        buyer: {
+          select: { id: true, name: true, phone: true }
+        },
+        supermarket: {
+          select: { id: true, name: true, phone: true, address: true, totalDebt: true }
+        }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Deal updated successfully',
+      data: completeDeal
+    });
+
+  } catch (error) {
+    console.error('Error updating deal:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update deal',
+      error: error.message || 'Internal server error'
+    });
+  }
+};
+
+/**
+ * DELETE /api/deals/:id
+ * Delete a deal and reverse all associated changes
+ * Access: ADMIN only
+ * 
+ * Reverses:
+ * - Returns stock quantities to products
+ * - Reduces supermarket's totalDebt
+ * - Deletes all payments and deal items
+ */
+export const deleteDeal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userRole = req.user.role;
+
+    // Only admins can delete deals
+    if (userRole !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins can delete deals'
+      });
+    }
+
+    // Fetch the deal with all relationships
+    const deal = await prisma.deal.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        payments: true
+      }
+    });
+
+    if (!deal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deal not found'
+      });
+    }
+
+    // Use transaction to ensure atomicity
+    await prisma.$transaction(async (tx) => {
+      // 1. Return stock quantities to products
+      for (const item of deal.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQty: {
+              increment: item.quantity
+            }
+          }
+        });
+      }
+
+      // 2. Calculate total paid amounts to reverse from supermarket debt
+      const totalPaid = deal.payments.reduce((sum, p) => sum + p.amount, 0);
+      const debtToReverse = deal.totalAmount; // Full original amount, not just remaining
+
+      await tx.supermarket.update({
+        where: { id: deal.supermarketId },
+        data: {
+          totalDebt: {
+            decrement: debtToReverse
+          }
+        }
+      });
+
+      // 3. Delete payments
+      await tx.payment.deleteMany({
+        where: { dealId: id }
+      });
+
+      // 4. Delete deal items
+      await tx.dealItem.deleteMany({
+        where: { dealId: id }
+      });
+
+      // 5. Delete deal
+      await tx.deal.delete({
+        where: { id }
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Deal deleted successfully. Stock and debt have been reversed.',
+      data: {
+        dealId: id,
+        action: 'deleted',
+        reversedDebt: deal.totalAmount,
+        itemsRestocked: deal.items.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting deal:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete deal',
+      error: 'Internal server error'
+    });
+  }
+};
