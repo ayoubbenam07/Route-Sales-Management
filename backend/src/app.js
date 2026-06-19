@@ -5,6 +5,7 @@ import {dbConnection} from './lib/dbConnection.js';
 import authRoutes from './routes/authRoutes.js';
 import productsRoutes from './routes/productsRoutes.js';
 import supermarketsRoutes from './routes/supermarketsRoutes.js';
+import dealsRoutes from './routes/dealsRoutes.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -25,6 +26,7 @@ dbConnection();
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/supermarkets", supermarketsRoutes);
+app.use("/api/deals", dealsRoutes);
 
 
 // Health Check
