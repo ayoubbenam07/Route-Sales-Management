@@ -640,17 +640,10 @@ export const putDeal = async (req, res) => {
 export const deleteDeal = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
     const userRole = req.user.role;
 
-    // Only admins can delete deals
-    if (userRole !== 'ADMIN') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only admins can delete deals'
-      });
-    }
-
-    // Fetch the deal with all relationships
+    // Admins or the buyer who created the deal can delete it
     const deal = await prisma.deal.findUnique({
       where: { id },
       include: {
@@ -658,6 +651,20 @@ export const deleteDeal = async (req, res) => {
         payments: true
       }
     });
+
+    if (!deal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deal not found'
+      });
+    }
+
+    if (userRole !== 'ADMIN' && deal.buyerId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins or the deal creator can delete this deal'
+      });
+    }
 
     if (!deal) {
       return res.status(404).json({
