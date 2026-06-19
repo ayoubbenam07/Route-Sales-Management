@@ -7,6 +7,7 @@ import productsRoutes from './routes/productsRoutes.js';
 import supermarketsRoutes from './routes/supermarketsRoutes.js';
 import dealsRoutes from './routes/dealsRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use("/api/products", productsRoutes);
 app.use("/api/supermarkets", supermarketsRoutes);
 app.use("/api/deals", dealsRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 
 // Health Check
