@@ -63,7 +63,8 @@ export const createDeal = async (req, res) => {
       }
     });
 
-    if (products.length !== items.length) {
+    const uniqueProductIds = new Set(items.map(item => item.productId));
+    if (products.length !== uniqueProductIds.size) {
       return res.status(404).json({
         success: false,
         message: 'One or more products not found'
