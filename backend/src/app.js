@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import {dbConnection} from './lib/dbConnection.js';
+import { dbConnection } from './lib/dbConnection.js';
 import authRoutes from './routes/authRoutes.js';
 import productsRoutes from './routes/productsRoutes.js';
 import supermarketsRoutes from './routes/supermarketsRoutes.js';
@@ -17,11 +17,11 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://route-sales-management.vercel.app'],
+  origin: "http://localhost:8080",
   credentials: true
 }));
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Initialize Database
