@@ -15,5 +15,8 @@ export const generateToken = (userId, userRole, res) => {
         secure: process.env.NODE_ENV === 'production',
     })
 
+    res.setHeader('Authorization', `Bearer ${token}`);
+    res.setHeader('x-access-token', token);
+
     return token;
 }

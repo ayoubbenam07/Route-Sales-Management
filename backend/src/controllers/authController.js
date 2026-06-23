@@ -68,6 +68,7 @@ export const register = async (req, res) => {
         name: user.name,
         phone: user.phone,
         role: user.role,
+        token
       }
     });
   } catch (error) {
@@ -196,7 +197,8 @@ export const login = async (req, res) => {
         id: user.id,
         name: user.name,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        token
       }
     });
   } catch (error) {
