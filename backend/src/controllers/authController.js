@@ -210,6 +210,85 @@ export const login = async (req, res) => {
 };
 
 /**
+ * Get all buyers (admin)
+ */
+export const getBuyers = async (req, res) => {
+  try {
+    const buyers = await prisma.user.findMany({
+      where: { role: 'BUYER' },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        _count: { select: { deals: true } },
+        deals: {
+          select: { totalAmount: true }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    const result = buyers.map((b) => ({
+      id: b.id,
+      name: b.name,
+      phone: b.phone,
+      dealsCount: b._count.deals,
+      totalSales: b.deals.reduce((s, d) => s + d.totalAmount, 0)
+    }));
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Get buyers error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+/**
+ * Update buyer (admin)
+ */
+export const updateBuyer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, password } = req.body;
+
+    const buyer = await prisma.user.findUnique({ where: { id } });
+    if (!buyer || buyer.role !== 'BUYER') {
+      return res.status(404).json({ success: false, message: 'Buyer not found' });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = String(name);
+    if (phone) {
+      // Check uniqueness if phone changed
+      if (phone !== buyer.phone) {
+        const existing = await prisma.user.findUnique({ where: { phone: String(phone) } });
+        if (existing) {
+          return res.status(409).json({ success: false, message: 'Phone already in use' });
+        }
+      }
+      updateData.phone = String(phone);
+    }
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: { id: true, name: true, phone: true, role: true }
+    });
+
+    return res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update buyer error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+/**
  * Logout
  */
 export const logout = async (req, res) => {

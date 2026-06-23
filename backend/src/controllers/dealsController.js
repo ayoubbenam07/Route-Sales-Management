@@ -579,15 +579,32 @@ export const putDeal = async (req, res) => {
       // 5. Update supermarket debt
       const newSupermarketId = supermarketId || deal.supermarketId;
       const newRemainBalance = newTotalAmount - totalPaid;
+      const oldRemainBalance = deal.totalAmount - deal.payments.reduce((sum, p) => sum + p.amount, 0);
 
-      await tx.supermarket.update({
-        where: { id: newSupermarketId },
-        data: {
-          totalDebt: {
-            increment: newRemainBalance
+      if (supermarketId && supermarketId !== deal.supermarketId) {
+        // Old supermarket debt already reversed in step 1, increment new supermarket
+        await tx.supermarket.update({
+          where: { id: newSupermarketId },
+          data: {
+            totalDebt: {
+              increment: newRemainBalance
+            }
           }
+        });
+      } else {
+        // Same supermarket, only adjust by the difference
+        const debtDelta = newRemainBalance - oldRemainBalance;
+        if (debtDelta !== 0) {
+          await tx.supermarket.update({
+            where: { id: newSupermarketId },
+            data: {
+              totalDebt: debtDelta > 0
+                ? { increment: debtDelta }
+                : { decrement: Math.abs(debtDelta) }
+            }
+          });
         }
-      });
+      }
 
       return updated;
     });
@@ -689,7 +706,7 @@ export const deleteDeal = async (req, res) => {
 
       // 2. Calculate total paid amounts to reverse from supermarket debt
       const totalPaid = deal.payments.reduce((sum, p) => sum + p.amount, 0);
-      const debtToReverse = deal.totalAmount; // Full original amount, not just remaining
+      const debtToReverse = deal.totalAmount - totalPaid; // Only reverse the unpaid remaining balance
 
       await tx.supermarket.update({
         where: { id: deal.supermarketId },
