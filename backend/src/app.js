@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 const allowedOrigins = [
   "http://localhost:8080",
-  "https://market-path-aid-alpha.vercel.app",
+  "https://sales-managment.vercel.app",
 ];
 
 app.use(cors({
