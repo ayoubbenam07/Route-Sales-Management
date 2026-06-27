@@ -8,10 +8,10 @@ router.use(protectRoute);
 
 router.get('/', getAllProducts);
 
-router.post('/', isAdmin, createProduct);
+router.post('/', createProduct);
 
-router.put('/:id', isAdmin, putProduct);
+router.put('/:id', putProduct);
 
-router.delete('/:id', isAdmin, deleteProduct);
+router.delete('/:id', deleteProduct);
 
 export default router;
