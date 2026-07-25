@@ -2,6 +2,7 @@ import axios, { type AxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 import type { ApiResponse } from "./types";
 import { cacheStore } from "./storage";
+import { queueRequest } from "./offlineSync";
 
 const TOKEN_KEY = "rs-auth-token";
 
@@ -118,5 +119,33 @@ export async function clearApiCache(pathPrefix: string) {
     }
   } catch (e) {
     console.error("Failed to clear cache", e);
+  }
+}
+
+export function isNetworkError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes("network error") || msg.includes("timeout") || msg.includes("network request failed");
+  }
+  return false;
+}
+
+export async function apiMutationOffline<T>(
+  method: "POST" | "PUT" | "DELETE",
+  path: string,
+  body: unknown,
+  optimisticResponse: T
+): Promise<T> {
+  try {
+    if (method === "POST") return await apiPost<T>(path, body);
+    if (method === "PUT") return await apiPut<T>(path, body);
+    if (method === "DELETE") return await apiDelete<T>(path);
+    throw new Error("Invalid method");
+  } catch (error) {
+    if (isNetworkError(error)) {
+      await queueRequest(method, path, body);
+      return optimisticResponse;
+    }
+    throw error;
   }
 }

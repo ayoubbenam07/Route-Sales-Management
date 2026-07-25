@@ -1,4 +1,4 @@
-import { apiGetCached, apiPost, apiPut, apiDelete, clearApiCache } from "@/lib/api";
+import { apiGetCached, apiMutationOffline, clearApiCache } from "@/lib/api";
 import { mapProduct, type ApiProduct, type Product } from "@/lib/types";
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -11,7 +11,13 @@ export async function createProduct(body: {
   basePrice: number;
   stockQty: number;
 }): Promise<Product> {
-  const data = await apiPost<ApiProduct>("/products", body);
+  const optimisticProduct: ApiProduct = {
+    id: `offline-${Date.now()}`,
+    name: body.name,
+    basePrice: body.basePrice,
+    stockQty: body.stockQty,
+  };
+  const data = await apiMutationOffline<ApiProduct>("POST", "/products", body, optimisticProduct);
   await clearApiCache("/products");
   return mapProduct(data);
 }
@@ -20,13 +26,25 @@ export async function updateProduct(
   id: string,
   body: { name: string; basePrice: number; stockQty: number },
 ): Promise<Product> {
-  const data = await apiPut<ApiProduct>(`/products/${id}`, body);
+  const optimisticProduct: ApiProduct = {
+    id,
+    name: body.name,
+    basePrice: body.basePrice,
+    stockQty: body.stockQty,
+  };
+  const data = await apiMutationOffline<ApiProduct>("PUT", `/products/${id}`, body, optimisticProduct);
   await clearApiCache("/products");
   return mapProduct(data);
 }
 
 export async function deleteProduct(id: string): Promise<{ success: boolean; data: Product }> {
-  const data = await apiDelete<ApiProduct>(`/products/${id}`);
+  const optimisticProduct: ApiProduct = {
+    id,
+    name: "Deleted Offline",
+    basePrice: 0,
+    stockQty: 0,
+  };
+  const data = await apiMutationOffline<ApiProduct>("DELETE", `/products/${id}`, undefined, optimisticProduct);
   await clearApiCache("/products");
   return { success: true, data: mapProduct(data) };
 }

@@ -11,7 +11,6 @@ import { queryClient } from "./src/lib/queryClient";
 import { initI18n } from "./src/lib/i18n";
 import { startOfflineSyncListener } from "./src/lib/offlineSync";
 import { hydrateToken } from "./src/lib/api";
-import { PowerSyncProvider } from "./src/db/PowerSyncProvider";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -37,12 +36,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <PowerSyncProvider>
-          <NavigationContainer>
-            <RootNavigator />
-            <StatusBar style="dark" />
-          </NavigationContainer>
-        </PowerSyncProvider>
+        <NavigationContainer>
+          <RootNavigator />
+          <StatusBar style="dark" />
+        </NavigationContainer>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

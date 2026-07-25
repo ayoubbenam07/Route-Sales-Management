@@ -4,15 +4,21 @@ import { syncQueue } from "./storage";
 
 interface QueuedRequest {
   id: string;
+  method: "POST" | "PUT" | "DELETE";
   url: string;
   payload: unknown;
   timestamp: number;
 }
 
-export async function queueRequest(url: string, payload: unknown): Promise<string> {
+export async function queueRequest(
+  method: "POST" | "PUT" | "DELETE",
+  url: string,
+  payload?: unknown
+): Promise<string> {
   const offlineId = `offline-${Date.now()}`;
   const queuedRequest: QueuedRequest = {
     id: offlineId,
+    method,
     url,
     payload,
     timestamp: Date.now(),
@@ -25,7 +31,7 @@ export async function processSyncQueue() {
   const keys = await syncQueue.keys();
   if (keys.length === 0) return;
 
-  const { apiPost } = await import("./api");
+  const { apiPost, apiPut, apiDelete } = await import("./api");
 
   let successCount = 0;
   let failureCount = 0;
@@ -34,7 +40,13 @@ export async function processSyncQueue() {
     const req = await syncQueue.getItem<QueuedRequest>(key);
     if (!req) continue;
     try {
-      await apiPost(req.url, req.payload);
+      if (req.method === "POST") {
+        await apiPost(req.url, req.payload);
+      } else if (req.method === "PUT") {
+        await apiPut(req.url, req.payload);
+      } else if (req.method === "DELETE") {
+        await apiDelete(req.url);
+      }
       await syncQueue.removeItem(key);
       successCount++;
     } catch (error) {
