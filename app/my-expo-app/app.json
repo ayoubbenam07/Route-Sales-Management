@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "my-expo-app",
+    "slug": "sales-management-qyw4mlhz0vz5tzyibhew",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-secure-store",
+      "expo-sharing"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ayoub.routesales"
+    },
+    "android": {
+      "package": "com.ayoub.routesales",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "95a5e4b8-3a7f-487b-9504-d5376452bdd3"
+      }
+    },
+    "owner": "ayoubbenams-team"
+  }
+}
