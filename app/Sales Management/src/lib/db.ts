@@ -2,10 +2,16 @@ import * as SQLite from 'expo-sqlite';
 import { v4 as uuidv4 } from 'uuid';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let currentDbName = 'sales.db';
+
+export function setDbUser(userId: string | null) {
+  // We no longer change the DB name per user, so products/supermarkets are shared.
+  // Deals will be filtered by buyerId in the queries.
+}
 
 export function getDb() {
   if (!db) {
-    db = SQLite.openDatabaseSync('sales.db');
+    db = SQLite.openDatabaseSync(currentDbName);
   }
   return db;
 }

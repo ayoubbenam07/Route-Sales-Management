@@ -84,7 +84,7 @@ export function AccountSwitcher() {
               className="flex-row items-center gap-2 rounded-xl px-3 py-3"
               onPress={() => {
                 setOpen(false);
-                navigation.navigate("Login", { addAccount: true });
+                navigation.navigate("AddAccount", { addAccount: true });
               }}
             >
               <Plus size={16} color="#4f46e5" />

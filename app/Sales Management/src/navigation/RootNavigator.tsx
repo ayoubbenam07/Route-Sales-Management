@@ -12,7 +12,8 @@ import { useAuth } from "@/stores/auth";
 import { setUnauthorizedHandler } from "@/lib/api";
 
 export type RootStackParamList = {
-  Login: { addAccount?: boolean } | undefined;
+  Login: undefined;
+  AddAccount: { addAccount: boolean } | undefined;
   MainTabs: undefined;
   NewDeal: { supermarketId?: string } | undefined;
   ClientDetail: { clientId: string };
@@ -88,7 +89,7 @@ export function RootNavigator() {
             options={{ headerShown: true, title: t("common.receipt") }}
           />
           <Stack.Screen
-            name="Login"
+            name="AddAccount"
             component={LoginScreen}
             options={{
               headerShown: false,

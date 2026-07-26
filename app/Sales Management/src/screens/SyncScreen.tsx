@@ -90,9 +90,25 @@ export function SyncScreen() {
         db.withTransactionSync(() => {
           for (const d of deals) {
             db.runSync(
-              "INSERT OR IGNORE INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')",
-              [d.id, d.supermarketId || d.supermarket?.id || "", d.supermarket?.name || "", d.buyerId || d.buyer?.id || "", d.buyer?.name || "", d.totalAmount, d.paymentSummary?.totalPaid || 0, d.paymentSummary?.remainingBalance || 0, d.status, d.createdAt || new Date().toISOString()]
+              "INSERT OR REPLACE INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')",
+              [d.id, d.supermarketId || d.supermarket?.id || "", d.supermarket?.name || "", d.buyerId || d.buyer?.id || "", d.buyer?.name || "", d.totalAmount, d.paymentSummary?.totalPaid || d.paid || 0, d.paymentSummary?.remainingBalance || d.remaining || 0, d.status, d.createdAt || new Date().toISOString()]
             );
+            if (Array.isArray(d.items)) {
+              for (const it of d.items) {
+                db.runSync(
+                  "INSERT OR REPLACE INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status) VALUES (?, ?, ?, ?, ?, ?, 'synced')",
+                  [it.id || Date.now().toString() + Math.random(), d.id, it.productId || it.product?.id || "", it.productName || it.product?.name || "", it.quantity, it.unitPrice]
+                );
+              }
+            }
+            if (Array.isArray(d.payments)) {
+              for (const p of d.payments) {
+                db.runSync(
+                  "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status) VALUES (?, ?, ?, ?, ?, 'synced')",
+                  [p.id || Date.now().toString() + Math.random(), d.id, p.amount, p.paymentDate || p.createdAt || new Date().toISOString(), p.method || 'CASH']
+                );
+              }
+            }
           }
         });
       } catch (e) {

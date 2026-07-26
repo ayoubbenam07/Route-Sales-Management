@@ -3,12 +3,17 @@ import { type Deal, type DealStatus } from "@/lib/types";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/api/queryKeys";
 
+import { useAuth } from "@/stores/auth";
+
 export async function fetchDeals(status?: DealStatus): Promise<Deal[]> {
   const db = getDb();
-  let query = 'SELECT * FROM deals';
-  const params: any[] = [];
+  const currentUser = useAuth.getState().user;
+  
+  let query = 'SELECT * FROM deals WHERE buyerId = ?';
+  const params: any[] = [currentUser?.id || ""];
+  
   if (status) {
-    query += ' WHERE status = ?';
+    query += ' AND status = ?';
     params.push(status);
   }
   query += ' ORDER BY createdAt DESC';

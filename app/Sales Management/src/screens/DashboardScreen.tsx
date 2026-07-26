@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "node_modules/react-i18next";
@@ -86,6 +87,14 @@ export function DashboardScreen() {
     queryFn: fetchSupermarkets,
   });
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+    setRefreshing(false);
+  }, [queryClient]);
+
   const filteredAndSorted = useMemo(() => {
     let result = [...supermarkets];
     if (searchQuery.trim()) {
@@ -142,6 +151,7 @@ export function DashboardScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <BentoCard title={t("common.debtToCollect")} icon={<Wallet size={16} color="#4f46e5" />}>
           <Text className="text-2xl font-bold text-slate-900">
@@ -323,7 +333,7 @@ export function DashboardScreen() {
       >
         <KeyboardAvoidingView
           className="flex-1"
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable className="flex-1 bg-black/40" onPress={() => setFormOpen(null)} />
           <View

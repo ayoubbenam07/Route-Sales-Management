@@ -22,6 +22,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
+import { useAuth } from "@/stores/auth";
 
 export function CollectPaymentScreen() {
   const { t, i18n } = useTranslation();
@@ -42,15 +43,18 @@ export function CollectPaymentScreen() {
     queryFn: () => fetchDeals(),
   });
 
+  const user = useAuth((s) => s.user);
+
   const openDeals = useMemo(
     () =>
       deals.filter(
         (d) =>
           d.supermarketId === supermarketId &&
           d.remaining > 0 &&
-          d.status !== "PAID",
+          d.status !== "PAID" &&
+          (user?.role === "ADMIN" || d.buyerId === user?.id),
       ),
-    [deals, supermarketId],
+    [deals, supermarketId, user],
   );
 
   useEffect(() => {
@@ -67,12 +71,13 @@ export function CollectPaymentScreen() {
 
   const paymentMutation = useMutation({
     mutationFn: async () => {
-      const parsed = Number(String(amount).replace(",", "."));
+      const parsed = Math.round(Number(String(amount).replace(",", ".")) * 100) / 100;
       if (!dealId) throw new Error("Sélectionnez une vente");
       if (!Number.isFinite(parsed) || parsed <= 0) {
         throw new Error("Montant invalide");
       }
-      if (selected && parsed > selected.remaining + 0.001) {
+      const safeRemaining = selected ? Math.round(selected.remaining * 100) / 100 : 0;
+      if (selected && parsed > safeRemaining + 0.001) {
         throw new Error(`Montant trop élevé. Restant: ${selected.remaining}`);
       }
       return createPayment({
@@ -87,6 +92,7 @@ export function CollectPaymentScreen() {
       await clearApiCache("/payment");
       queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
       queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.payments });
       Alert.alert("Succès", `Paiement enregistré${supermarketName ? ` pour ${supermarketName}` : ""}`);

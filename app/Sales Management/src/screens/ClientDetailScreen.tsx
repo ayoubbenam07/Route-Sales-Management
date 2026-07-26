@@ -217,7 +217,7 @@ export function ClientDetailScreen() {
       <Modal visible={editOpen} animationType="slide" transparent onRequestClose={() => setEditOpen(false)}>
         <KeyboardAvoidingView
           className="flex-1"
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable className="flex-1 bg-black/40" onPress={() => setEditOpen(false)} />
           <View

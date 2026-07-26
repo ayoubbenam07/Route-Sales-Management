@@ -19,6 +19,7 @@ import { printReceipt } from "@/lib/receipt";
 import { StatusPill } from "@/components/Bento";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/stores/auth";
 
 export function DealDetailScreen() {
   const { t, i18n } = useTranslation();
@@ -27,6 +28,7 @@ export function DealDetailScreen() {
   const route = useRoute<any>();
   const queryClient = useQueryClient();
   const dealId = route.params?.dealId as string;
+  const user = useAuth((s) => s.user);
   const [printing, setPrinting] = useState(false);
 
   const lang = i18n.language;
@@ -193,7 +195,7 @@ export function DealDetailScreen() {
           </Text>
         </Button>
 
-        {deal.remaining > 0 ? (
+        {deal.remaining > 0 && (user?.role === "ADMIN" || deal.buyerId === user?.id) ? (
           <Button
             variant="outline"
             className="border-red-200 bg-red-50"

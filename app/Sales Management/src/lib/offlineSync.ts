@@ -56,7 +56,7 @@ export async function processSyncQueue() {
   }
 
   if (successCount > 0) {
-    Alert.alert("Sync", `${successCount} action(s) hors ligne synchronisée(s).`);
+    // Sync silently
   }
   if (failureCount > 0 && successCount === 0) {
     // Stay quiet when still offline — avoid alert spam

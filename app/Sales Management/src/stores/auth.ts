@@ -2,6 +2,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken, hydrateToken, setToken } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
+import { setDbUser } from "@/lib/db";
 
 export type Role = "ADMIN" | "BUYER";
 
@@ -69,6 +70,10 @@ export const useAuth = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accs));
     }
 
+    if (u) {
+      setDbUser(u.id);
+    }
+
     set({ user: u, accounts: accs, hydrated: true });
   },
   login: async (user) => {
@@ -87,6 +92,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
     await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
+    setDbUser(user.id);
     queryClient.clear();
     set({ user, accounts: updatedAccounts, hydrated: true });
   },
@@ -96,6 +102,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     await setToken(account.token);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(account.user));
+    setDbUser(account.user.id);
     set({ user: account.user });
     queryClient.clear();
   },
@@ -127,6 +134,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     await AsyncStorage.removeItem(USER_KEY);
     await AsyncStorage.removeItem(ACCOUNTS_KEY);
     await setToken(null);
+    setDbUser(null);
     queryClient.clear();
     set({ user: null, accounts: [] });
   },

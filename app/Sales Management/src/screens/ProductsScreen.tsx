@@ -7,6 +7,9 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
 } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -167,8 +170,12 @@ export function ProductsScreen() {
         />
       )}
 
-      <Modal visible={!!formOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/40">
+      <Modal visible={!!formOpen} animationType="slide" transparent onRequestClose={() => setFormOpen(null)}>
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Pressable className="flex-1 bg-black/40" onPress={() => setFormOpen(null)} />
           <View className="gap-4 rounded-t-3xl bg-white p-5">
             <Text className="text-lg font-bold text-slate-900">
               {formOpen === "create" ? t("common.createProduct") : "Modifier le produit"}
@@ -185,8 +192,9 @@ export function ProductsScreen() {
               className="flex-row items-center gap-2"
             >
               <View
-                className={`h-5 w-5 rounded border ${infiniteStock ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
-                  }`}
+                className={`h-5 w-5 rounded border ${
+                  infiniteStock ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
+                }`}
               />
               <Text className="text-sm text-slate-700">Stock illimité</Text>
             </TouchableOpacity>
@@ -198,7 +206,7 @@ export function ProductsScreen() {
                 keyboardType="number-pad"
               />
             ) : null}
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2 pb-4">
               <View className="flex-1">
                 <Button variant="outline" onPress={() => setFormOpen(null)}>
                   {t("common.cancel")}
@@ -211,7 +219,7 @@ export function ProductsScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

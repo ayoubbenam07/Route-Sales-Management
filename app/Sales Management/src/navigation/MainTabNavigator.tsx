@@ -7,7 +7,6 @@ import { LayoutDashboard, Package, ReceiptText } from "lucide-react-native";
 import { DashboardScreen } from "../screens/DashboardScreen";
 import { ProductsScreen } from "../screens/ProductsScreen";
 import { DealsScreen } from "../screens/DealsScreen";
-import { SyncScreen } from "../screens/SyncScreen";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
 
@@ -67,14 +66,6 @@ export function MainTabNavigator() {
         component={DealsScreen}
         options={{
           title: t("nav.myDeals"),
-          tabBarIcon: ({ color, size }) => <ReceiptText color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="Sync"
-        component={SyncScreen}
-        options={{
-          title: "Sync",
           tabBarIcon: ({ color, size }) => <ReceiptText color={color} size={size} />,
         }}
       />

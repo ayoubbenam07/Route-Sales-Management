@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +30,7 @@ export function LoginScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const onSubmit = async () => {
     if (phone.trim().length < 6 || password.length < 6) {
@@ -97,13 +99,19 @@ export function LoginScreen() {
                 autoCapitalize="none"
                 value={phone}
                 onChangeText={setPhone}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
               <Input
+                ref={passwordRef}
                 label={t("auth.password")}
                 placeholder="••••••"
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
+                returnKeyType="send"
+                onSubmitEditing={onSubmit}
               />
               <Button onPress={onSubmit} loading={submitting} size="lg">
                 {addAccount ? "Ajouter le compte" : t("auth.signIn")}
