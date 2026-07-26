@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/api/queryKeys";
 
 import { useAuth } from "@/stores/auth";
+import { triggerBackgroundSync } from "@/lib/offlineSync";
 
 export async function fetchDeals(status?: DealStatus): Promise<Deal[]> {
   const db = getDb();
@@ -84,15 +85,18 @@ export async function createDeal(body: {
   const status = remaining > 0 ? (body.initialPayment > 0 ? "PARTIAL" : "UNPAID") : "PAID";
   const createdAt = new Date().toISOString();
 
-  // Find supermarket name
   const sm = db.getFirstSync('SELECT name FROM supermarkets WHERE id = ?', [body.supermarketId]) as any;
   const supermarketName = sm ? sm.name : "Client";
+  
+  const currentUser = useAuth.getState().user;
+  const buyerId = currentUser?.id || "";
+  const buyerName = currentUser?.name || "";
 
   // Use a transaction for deal and items
   db.withTransactionSync(() => {
     db.runSync(
       'INSERT INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, body.supermarketId, supermarketName, "", "", totalAmount, body.initialPayment, remaining, status, createdAt, 'pending']
+      [id, body.supermarketId, supermarketName, buyerId, buyerName, totalAmount, body.initialPayment, remaining, status, createdAt, 'pending']
     );
 
     for (const item of body.items) {
@@ -119,6 +123,9 @@ export async function createDeal(body: {
   queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
   queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
   queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+  
+  // Trigger background sync to update the online DB immediately
+  triggerBackgroundSync();
   
   return fetchDeal(id);
 }

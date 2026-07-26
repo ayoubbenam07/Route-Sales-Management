@@ -93,7 +93,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
     await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
     setDbUser(user.id);
-    queryClient.clear();
+    queryClient.resetQueries();
     set({ user, accounts: updatedAccounts, hydrated: true });
   },
   switchAccount: async (userId) => {
@@ -104,7 +104,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(account.user));
     setDbUser(account.user.id);
     set({ user: account.user });
-    queryClient.clear();
+    queryClient.resetQueries();
   },
   removeAccount: async (userId) => {
     const updatedAccounts = get().accounts.filter((a) => a.user.id !== userId);

@@ -1,5 +1,6 @@
 import { getDb, generateId } from "@/lib/db";
 import type { ApiPayment, PaymentMethod } from "@/lib/types";
+import { triggerBackgroundSync } from "@/lib/offlineSync";
 
 export async function fetchPayments(): Promise<ApiPayment[]> {
   const db = getDb();
@@ -52,6 +53,9 @@ export async function createPayment(body: {
       );
     }
   });
+
+  // Trigger sync for the new payment
+  triggerBackgroundSync();
 
   return {
     id,

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/Button";
 import { getDb } from "@/lib/db";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
+import { Alert } from "@/components/CustomAlert";
 
 export function SyncScreen() {
   const { t } = useTranslation();
@@ -29,9 +30,13 @@ export function SyncScreen() {
         // If it starts with a local UUID, we might need to POST, else PUT
         // Just for simplicity we'll assume everything is pushed via POST/PUT
         try {
-          // If we had a real backend, we'd sync here.
-          // await apiPost('/supermarkets', sm);
-          db.runSync("UPDATE supermarkets SET sync_status = 'synced' WHERE id = ?", [sm.id]);
+          const newSm: any = await apiPost('/supermarkets', sm);
+          if (newSm && newSm.id) {
+            db.runSync("UPDATE supermarkets SET sync_status = 'synced', id = ? WHERE id = ?", [newSm.id, sm.id]);
+            db.runSync("UPDATE deals SET supermarketId = ? WHERE supermarketId = ?", [newSm.id, sm.id]);
+          } else {
+            db.runSync("UPDATE supermarkets SET sync_status = 'synced' WHERE id = ?", [sm.id]);
+          }
         } catch (e) {
           addLog(`Erreur envoi client ${sm.name}`);
         }
@@ -44,8 +49,26 @@ export function SyncScreen() {
         const items = db.getAllSync("SELECT * FROM deal_items WHERE dealId = ?", [deal.id]) as any[];
         const payments = db.getAllSync("SELECT * FROM payments WHERE dealId = ?", [deal.id]) as any[];
         try {
-          // Sync to backend logic here...
-          db.runSync("UPDATE deals SET sync_status = 'synced' WHERE id = ?", [deal.id]);
+          const payload = {
+            id: deal.id,
+            supermarketId: deal.supermarketId,
+            items: items.map(it => ({
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice
+            })),
+            initialPayment: payments.length > 0 ? payments[0].amount : 0
+          };
+          const newDeal: any = await apiPost('/deals', payload);
+          if (newDeal && newDeal.id) {
+            db.runSync("UPDATE deals SET sync_status = 'synced', id = ? WHERE id = ?", [newDeal.id, deal.id]);
+            db.runSync("UPDATE deal_items SET sync_status = 'synced', dealId = ? WHERE dealId = ?", [newDeal.id, deal.id]);
+            db.runSync("UPDATE payments SET sync_status = 'synced', dealId = ? WHERE dealId = ?", [newDeal.id, deal.id]);
+          } else {
+            db.runSync("UPDATE deals SET sync_status = 'synced' WHERE id = ?", [deal.id]);
+            db.runSync("UPDATE deal_items SET sync_status = 'synced' WHERE dealId = ?", [deal.id]);
+            db.runSync("UPDATE payments SET sync_status = 'synced' WHERE dealId = ?", [deal.id]);
+          }
         } catch (e) {
           addLog(`Erreur envoi vente ${deal.id}`);
         }
@@ -116,7 +139,7 @@ export function SyncScreen() {
       }
 
       addLog("Synchronisation terminée avec succès !");
-      queryClient.clear();
+      queryClient.resetQueries();
       Alert.alert("Succès", "Synchronisation terminée");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";

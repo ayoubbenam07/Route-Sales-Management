@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "node_modules/react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +14,7 @@ import { StatusPill } from "@/components/Bento";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/stores/auth";
+import { Alert } from "@/components/CustomAlert";
 
 export function DealDetailScreen() {
   const { t, i18n } = useTranslation();

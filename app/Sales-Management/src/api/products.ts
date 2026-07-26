@@ -2,6 +2,7 @@ import { getDb, generateId } from "@/lib/db";
 import { type Product } from "@/lib/types";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/api/queryKeys";
+import { triggerBackgroundSync } from "@/lib/offlineSync";
 
 export async function fetchProducts(): Promise<Product[]> {
   const db = getDb();
@@ -27,6 +28,7 @@ export async function createProduct(body: {
   );
   // Assume there is a queryKey for products
   queryClient.invalidateQueries({ queryKey: ['products'] as const });
+  triggerBackgroundSync();
   return {
     id,
     name: body.name,
@@ -45,6 +47,7 @@ export async function updateProduct(
     [body.name, body.basePrice, body.stockQty, 'pending', id]
   );
   queryClient.invalidateQueries({ queryKey: ['products'] as const });
+  triggerBackgroundSync();
   return {
     id,
     name: body.name,

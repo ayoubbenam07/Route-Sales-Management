@@ -1,14 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "node_modules/react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +14,7 @@ import { Input } from "@/components/Input";
 import { cn } from "@/lib/utils";
 import type { Deal } from "@/lib/types";
 import { useAuth } from "@/stores/auth";
+import { Alert } from "@/components/CustomAlert";
 
 export function CollectPaymentScreen() {
   const { t, i18n } = useTranslation();

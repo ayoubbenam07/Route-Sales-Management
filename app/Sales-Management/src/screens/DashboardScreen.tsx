@@ -1,17 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  RefreshControl,
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "node_modules/react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +26,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import type { Supermarket } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Alert } from "@/components/CustomAlert";
 
 export function DashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -327,18 +316,17 @@ export function DashboardScreen() {
 
       <Modal
         visible={!!formOpen}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={() => setFormOpen(null)}
       >
         <KeyboardAvoidingView
-          className="flex-1"
+          className="flex-1 bg-black/40 justify-start pt-24 px-4"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <Pressable className="flex-1 bg-black/40" onPress={() => setFormOpen(null)} />
+          <Pressable className="absolute inset-0" onPress={() => setFormOpen(null)} />
           <View
-            className="rounded-t-3xl bg-white px-5 pt-5"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+            className="rounded-3xl bg-white p-5 shadow-lg"
           >
             <Text className="mb-4 text-lg font-bold text-slate-900">
               {formOpen === "create" ? "Nouveau supermarché" : "Modifier le supermarché"}

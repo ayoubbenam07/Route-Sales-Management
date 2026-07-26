@@ -1,14 +1,5 @@
 import React, { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-  TextInput,
-} from "react-native";
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, TextInput } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -17,6 +8,7 @@ import { useAuth, type Role } from "@/stores/auth";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { Alert } from "@/components/CustomAlert";
 
 export function LoginScreen() {
   const { t } = useTranslation();
@@ -66,7 +58,7 @@ export function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
         >
           <View className="mb-4 flex-row items-center justify-between">

@@ -1,8 +1,9 @@
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import type { Deal } from "./types";
 import { formatMoney } from "./i18n";
+import { Alert } from "@/components/CustomAlert";
 
 function buildHtml(deal: Deal, lang: string) {
   const isAr = (lang || "fr").startsWith("ar");

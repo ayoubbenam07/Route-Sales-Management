@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, Modal, TouchableOpacity, Pressable, Alert } from "react-native";
+import { View, Text, Modal, TouchableOpacity, Pressable } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { useNavigation } from "@react-navigation/native";
 import { Check, ChevronDown, LogOut, Plus, User as UserIcon } from "lucide-react-native";
 import { useAuth } from "@/stores/auth";
 import { logout as apiLogout } from "@/api/auth";
+import { Alert } from "@/components/CustomAlert";
 
 export function AccountSwitcher() {
   const { t } = useTranslation();

@@ -1,16 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Modal,
-  Alert,
-  ActivityIndicator,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from "react-native";
+import { View, Text, FlatList, Modal, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, Pressable } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Infinity } from "lucide-react-native";
@@ -25,6 +14,7 @@ import { formatMoney } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { Alert } from "@/components/CustomAlert";
 
 const INFINITE_STOCK = 999_999_999;
 const isInfinite = (n: number) => n < 0 || n >= INFINITE_STOCK;
@@ -170,13 +160,13 @@ export function ProductsScreen() {
         />
       )}
 
-      <Modal visible={!!formOpen} animationType="slide" transparent onRequestClose={() => setFormOpen(null)}>
+      <Modal visible={!!formOpen} animationType="fade" transparent onRequestClose={() => setFormOpen(null)}>
         <KeyboardAvoidingView
-          className="flex-1"
+          className="flex-1 bg-black/40 justify-start pt-24 px-4"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <Pressable className="flex-1 bg-black/40" onPress={() => setFormOpen(null)} />
-          <View className="gap-4 rounded-t-3xl bg-white p-5">
+          <Pressable className="absolute inset-0" onPress={() => setFormOpen(null)} />
+          <View className="gap-4 rounded-3xl bg-white p-5 shadow-lg">
             <Text className="text-lg font-bold text-slate-900">
               {formOpen === "create" ? t("common.createProduct") : "Modifier le produit"}
             </Text>

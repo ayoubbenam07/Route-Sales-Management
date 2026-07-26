@@ -2,6 +2,7 @@ import { mapSupermarket, type ApiSupermarket, type Supermarket } from "@/lib/typ
 import { getDb, generateId } from "@/lib/db";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/api/queryKeys";
+import { triggerBackgroundSync } from "@/lib/offlineSync";
 
 export async function fetchSupermarkets(): Promise<Supermarket[]> {
   const db = getDb();
@@ -40,6 +41,7 @@ export async function createSupermarket(body: {
     [id, body.name, body.phone, body.address, 0, 'pending']
   );
   queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+  triggerBackgroundSync();
   return {
     id,
     name: body.name,
@@ -59,6 +61,7 @@ export async function updateSupermarket(
     [body.name, body.phone, body.address, 'pending', id]
   );
   queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+  triggerBackgroundSync();
   const row = db.getFirstSync('SELECT * FROM supermarkets WHERE id = ?', [id]) as any;
   return {
     id: row.id,
