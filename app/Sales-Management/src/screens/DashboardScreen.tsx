@@ -27,6 +27,7 @@ import { Input } from "@/components/Input";
 import type { Supermarket } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/CustomAlert";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 export function DashboardScreen() {
   const { t, i18n } = useTranslation();
@@ -136,6 +137,7 @@ export function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-slate-50">
+      <OfflineBanner />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}

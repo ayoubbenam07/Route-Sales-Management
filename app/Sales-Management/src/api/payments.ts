@@ -1,10 +1,12 @@
 import { getDb, generateId } from "@/lib/db";
 import type { ApiPayment, PaymentMethod } from "@/lib/types";
-import { triggerBackgroundSync } from "@/lib/offlineSync";
+import { triggerSync } from "@/lib/offlineSync";
 
 export async function fetchPayments(): Promise<ApiPayment[]> {
   const db = getDb();
-  const rows = db.getAllSync('SELECT * FROM payments ORDER BY paymentDate DESC') as any[];
+  const rows = db.getAllSync(
+    "SELECT * FROM payments WHERE sync_action != 'delete' ORDER BY paymentDate DESC"
+  ) as any[];
   return rows.map(r => ({
     id: r.id,
     dealId: r.dealId,
@@ -26,8 +28,8 @@ export async function createPayment(body: {
   db.withTransactionSync(() => {
     // Create payment
     db.runSync(
-      'INSERT INTO payments (id, dealId, amount, paymentDate, method, sync_status) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, body.dealId, body.amount, paymentDate, body.method, 'pending']
+      "INSERT INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', 'create', ?)",
+      [id, body.dealId, body.amount, paymentDate, body.method, paymentDate]
     );
 
     // Update deal
@@ -43,19 +45,11 @@ export async function createPayment(body: {
       db.runSync('UPDATE deals SET status = ? WHERE id = ?', [status, body.dealId]);
     }
 
-    // Update supermarket totalDebt
-    // We need supermarketId from deal
-    const dealSm = db.getFirstSync('SELECT supermarketId FROM deals WHERE id = ?', [body.dealId]) as any;
-    if (dealSm) {
-      db.runSync(
-        'UPDATE supermarkets SET totalDebt = totalDebt - ? WHERE id = ?',
-        [body.amount, dealSm.supermarketId]
-      );
-    }
+    // totalDebt is computed dynamically — no static update needed
   });
 
-  // Trigger sync for the new payment
-  triggerBackgroundSync();
+  // Fire-and-forget background sync
+  triggerSync();
 
   return {
     id,

@@ -1,8 +1,6 @@
 import axios, { type AxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 import type { ApiResponse } from "./types";
-import { cacheStore } from "./storage";
-import { queueRequest } from "./offlineSync";
 
 const TOKEN_KEY = "rs-auth-token";
 
@@ -85,67 +83,10 @@ export async function apiDelete<T>(path: string): Promise<T> {
   return data.data as T;
 }
 
-export async function apiGetCached<T>(
-  path: string,
-  params?: Record<string, string>,
-): Promise<T> {
-  const cacheKey = `rs-cache:${path}${params ? "?" + new URLSearchParams(params).toString() : ""}`;
-
-  try {
-    const data = await apiGet<T>(path, params);
-    await cacheStore.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
-    return data;
-  } catch (error) {
-    const cachedItem = await cacheStore.getItem<string>(cacheKey);
-    if (cachedItem) {
-      try {
-        const { data } = JSON.parse(cachedItem);
-        return data as T;
-      } catch {
-        // ignore parse errors
-      }
-    }
-    throw error;
-  }
-}
-
-export async function clearApiCache(pathPrefix: string) {
-  try {
-    const keys = await cacheStore.keys();
-    for (const key of keys) {
-      if (key.startsWith(`rs-cache:${pathPrefix}`)) {
-        await cacheStore.removeItem(key);
-      }
-    }
-  } catch (e) {
-    console.error("Failed to clear cache", e);
-  }
-}
-
 export function isNetworkError(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
     return msg.includes("network error") || msg.includes("timeout") || msg.includes("network request failed");
   }
   return false;
-}
-
-export async function apiMutationOffline<T>(
-  method: "POST" | "PUT" | "DELETE",
-  path: string,
-  body: unknown,
-  optimisticResponse: T
-): Promise<T> {
-  try {
-    if (method === "POST") return await apiPost<T>(path, body);
-    if (method === "PUT") return await apiPut<T>(path, body);
-    if (method === "DELETE") return await apiDelete<T>(path);
-    throw new Error("Invalid method");
-  } catch (error) {
-    if (isNetworkError(error)) {
-      await queueRequest(method, path, body);
-      return optimisticResponse;
-    }
-    throw error;
-  }
 }

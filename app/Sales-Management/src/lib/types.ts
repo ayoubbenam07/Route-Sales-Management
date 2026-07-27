@@ -164,13 +164,25 @@ export function dealReference(id: string): string {
   return `DEAL-${id.slice(0, 8).toUpperCase()}`;
 }
 
-export function mapDeal(d: ApiDeal): Deal {
-  const totalPaid =
+/** Derive paid/remaining from API deal payload (list endpoint has no paymentSummary). */
+export function computeDealAmounts(d: ApiDeal): {
+  totalAmount: number;
+  paid: number;
+  remaining: number;
+} {
+  const totalAmount = d.totalAmount ?? 0;
+  const paid =
     d.paymentSummary?.totalPaid ??
-    d.payments?.reduce((s, p) => s + p.amount, 0) ??
-    0;
-  const total = d.totalAmount;
-  const remaining = d.paymentSummary?.remainingBalance ?? Math.max(0, total - totalPaid);
+    (Array.isArray(d.payments)
+      ? d.payments.reduce((s, p) => s + (p.amount ?? 0), 0)
+      : 0);
+  const remaining =
+    d.paymentSummary?.remainingBalance ?? Math.max(0, totalAmount - paid);
+  return { totalAmount, paid, remaining };
+}
+
+export function mapDeal(d: ApiDeal): Deal {
+  const { totalAmount: total, paid: totalPaid, remaining } = computeDealAmounts(d);
 
   return {
     id: d.id,

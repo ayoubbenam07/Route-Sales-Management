@@ -17,22 +17,25 @@ export async function fetchBuyerDashboard(): Promise<BuyerDashboardData> {
   const currentUser = useAuth.getState().user;
   const buyerId = currentUser?.id || "";
 
-  // Total debt from deals specific to this buyer
-  const deals = db.getAllSync('SELECT remaining FROM deals WHERE buyerId = ?', [buyerId]) as any[];
-  const totalDebtResponsible = deals.reduce((sum, d) => sum + d.remaining, 0);
+  // Total debt from deals specific to this buyer (exclude soft-deleted)
+  const deals = db.getAllSync(
+    "SELECT remaining FROM deals WHERE buyerId = ? AND sync_action != 'delete'",
+    [buyerId]
+  ) as any[];
+  const totalDebtResponsible = deals.reduce((sum, d) => sum + (d.remaining > 0 ? d.remaining : 0), 0);
 
   // Total sales this month
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const dealsThisMonth = db.getAllSync(
-    'SELECT totalAmount FROM deals WHERE createdAt >= ? AND buyerId = ?',
+    "SELECT totalAmount FROM deals WHERE createdAt >= ? AND buyerId = ? AND sync_action != 'delete'",
     [startOfMonth, buyerId]
   ) as any[];
   const totalSalesThisMonth = dealsThisMonth.reduce((sum, d) => sum + d.totalAmount, 0);
 
   // Recent deals
   const recentRows = db.getAllSync(
-    'SELECT id, createdAt, status, totalAmount, paid, remaining, supermarketId, supermarketName FROM deals WHERE buyerId = ? ORDER BY createdAt DESC LIMIT 5',
+    "SELECT id, createdAt, status, totalAmount, paid, remaining, supermarketId, supermarketName FROM deals WHERE buyerId = ? AND sync_action != 'delete' ORDER BY createdAt DESC LIMIT 5",
     [buyerId]
   ) as any[];
 

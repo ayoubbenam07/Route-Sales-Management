@@ -7,7 +7,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Printer, Trash2 } from "lucide-react-native";
 import { fetchDeal, deleteDeal } from "@/api/deals";
 import { queryKeys } from "@/api/queryKeys";
-import { clearApiCache } from "@/lib/api";
+
 import { formatMoney } from "@/lib/i18n";
 import { printReceipt } from "@/lib/receipt";
 import { StatusPill } from "@/components/Bento";
@@ -38,9 +38,7 @@ export function DealDetailScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteDeal(dealId),
     onSuccess: async () => {
-      await clearApiCache("/deals");
-      await clearApiCache("/supermarkets");
-      await clearApiCache("/products");
+
       queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
       queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
       queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });

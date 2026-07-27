@@ -7,7 +7,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { fetchDeals } from "@/api/deals";
 import { createPayment } from "@/api/payments";
 import { queryKeys } from "@/api/queryKeys";
-import { clearApiCache } from "@/lib/api";
+
 import { formatMoney } from "@/lib/i18n";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -43,10 +43,9 @@ export function CollectPaymentScreen() {
         (d) =>
           d.supermarketId === supermarketId &&
           d.remaining > 0 &&
-          d.status !== "PAID" &&
-          (user?.role === "ADMIN" || d.buyerId === user?.id),
+          d.status !== "PAID",
       ),
-    [deals, supermarketId, user],
+    [deals, supermarketId],
   );
 
   useEffect(() => {
@@ -79,9 +78,7 @@ export function CollectPaymentScreen() {
       });
     },
     onSuccess: async () => {
-      await clearApiCache("/deals");
-      await clearApiCache("/supermarkets");
-      await clearApiCache("/payment");
+
       queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
       queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
       queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });

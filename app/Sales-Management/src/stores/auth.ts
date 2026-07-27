@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken, hydrateToken, setToken } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { setDbUser } from "@/lib/db";
-import { pullRemoteData } from "@/lib/offlineSync";
+import { triggerSync } from "@/lib/offlineSync";
 
 export type Role = "ADMIN" | "BUYER";
 
@@ -73,6 +73,8 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     if (u) {
       setDbUser(u.id);
+      // Sync into the correct per-user DB after hydration
+      triggerSync();
     }
 
     set({ user: u, accounts: accs, hydrated: true });
@@ -95,7 +97,10 @@ export const useAuth = create<AuthState>((set, get) => ({
     await AsyncStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
     setDbUser(user.id);
     queryClient.resetQueries();
-    pullRemoteData().catch(console.error);
+    
+    // Non-blocking sync — UI shows local data immediately
+    triggerSync();
+    
     set({ user, accounts: updatedAccounts, hydrated: true });
   },
   switchAccount: async (userId) => {
@@ -107,7 +112,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     setDbUser(account.user.id);
     set({ user: account.user });
     queryClient.resetQueries();
-    pullRemoteData().catch(console.error);
+    
+    // Non-blocking sync — UI shows local data immediately
+    triggerSync();
   },
   removeAccount: async (userId) => {
     const updatedAccounts = get().accounts.filter((a) => a.user.id !== userId);

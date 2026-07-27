@@ -2,16 +2,15 @@ import { getDb, generateId } from "@/lib/db";
 import { type Deal, type DealStatus } from "@/lib/types";
 import { queryClient } from "@/lib/queryClient";
 import { queryKeys } from "@/api/queryKeys";
-
 import { useAuth } from "@/stores/auth";
-import { triggerBackgroundSync } from "@/lib/offlineSync";
+import { triggerSync } from "@/lib/offlineSync";
 
 export async function fetchDeals(status?: DealStatus): Promise<Deal[]> {
   const db = getDb();
-  const currentUser = useAuth.getState().user;
   
-  let query = 'SELECT * FROM deals WHERE buyerId = ?';
-  const params: any[] = [currentUser?.id || ""];
+  // Show all deals in the local DB (per-user DB is already scoped by setDbUser)
+  let query = "SELECT * FROM deals WHERE sync_action != 'delete'";
+  const params: any[] = [];
   
   if (status) {
     query += ' AND status = ?';
@@ -22,7 +21,10 @@ export async function fetchDeals(status?: DealStatus): Promise<Deal[]> {
   const deals = db.getAllSync(query, params) as any[];
   
   return deals.map(d => {
-    const items = db.getAllSync('SELECT * FROM deal_items WHERE dealId = ?', [d.id]) as any[];
+    const items = db.getAllSync(
+      "SELECT * FROM deal_items WHERE dealId = ? AND sync_action != 'delete'",
+      [d.id]
+    ) as any[];
     return {
       id: d.id,
       reference: `DEAL-${d.id.slice(0, 8).toUpperCase()}`,
@@ -50,7 +52,10 @@ export async function fetchDeal(id: string): Promise<Deal> {
   const d = db.getFirstSync('SELECT * FROM deals WHERE id = ?', [id]) as any;
   if (!d) throw new Error("Deal not found");
   
-  const items = db.getAllSync('SELECT * FROM deal_items WHERE dealId = ?', [d.id]) as any[];
+  const items = db.getAllSync(
+    "SELECT * FROM deal_items WHERE dealId = ? AND sync_action != 'delete'",
+    [d.id]
+  ) as any[];
   
   return {
     id: d.id,
@@ -95,37 +100,32 @@ export async function createDeal(body: {
   // Use a transaction for deal and items
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, body.supermarketId, supermarketName, buyerId, buyerName, totalAmount, body.initialPayment, remaining, status, createdAt, 'pending']
+      "INSERT INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status, sync_action, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'create', ?)",
+      [id, body.supermarketId, supermarketName, buyerId, buyerName, totalAmount, body.initialPayment, remaining, status, createdAt, createdAt]
     );
 
     for (const item of body.items) {
       db.runSync(
-        'INSERT INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [generateId(), id, item.productId, item.productName || "", item.quantity, item.unitPrice, 'pending']
+        "INSERT INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status, sync_action, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', 'create', ?)",
+        [generateId(), id, item.productId, item.productName || "", item.quantity, item.unitPrice, createdAt]
       );
     }
     
     if (body.initialPayment > 0) {
       db.runSync(
-        'INSERT INTO payments (id, dealId, amount, paymentDate, method, sync_status) VALUES (?, ?, ?, ?, ?, ?)',
-        [generateId(), id, body.initialPayment, createdAt, "CASH", 'pending']
+        "INSERT INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', 'create', ?)",
+        [generateId(), id, body.initialPayment, createdAt, "CASH", createdAt]
       );
     }
-    
-    // Update supermarket debt
-    db.runSync(
-      'UPDATE supermarkets SET totalDebt = totalDebt + ? WHERE id = ?',
-      [remaining, body.supermarketId]
-    );
+    // totalDebt is computed dynamically — no static update needed
   });
 
   queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
   queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
   queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
   
-  // Trigger background sync to update the online DB immediately
-  triggerBackgroundSync();
+  // Fire-and-forget background sync
+  triggerSync();
   
   return fetchDeal(id);
 }
@@ -136,19 +136,34 @@ export async function deleteDeal(id: string): Promise<void> {
   if (!deal) return;
 
   db.withTransactionSync(() => {
-    // Decrease supermarket debt
-    db.runSync(
-      'UPDATE supermarkets SET totalDebt = totalDebt - ? WHERE id = ?',
-      [deal.remaining, deal.supermarketId]
-    );
-    // Note: To implement a real offline deletion sync, you'd usually soft-delete or track deleted IDs.
-    // For now we'll just hard-delete.
-    db.runSync('DELETE FROM deal_items WHERE dealId = ?', [id]);
-    db.runSync('DELETE FROM payments WHERE dealId = ?', [id]);
-    db.runSync('DELETE FROM deals WHERE id = ?', [id]);
+    // totalDebt is computed dynamically — no static update needed
+
+    if (deal.sync_status === 'pending' && deal.sync_action === 'create') {
+      // Never synced to server — safe to hard-delete locally
+      db.runSync('DELETE FROM deal_items WHERE dealId = ?', [id]);
+      db.runSync('DELETE FROM payments WHERE dealId = ?', [id]);
+      db.runSync('DELETE FROM deals WHERE id = ?', [id]);
+    } else {
+      // Already on server — soft-delete, sync engine will send DELETE
+      db.runSync(
+        "UPDATE deals SET sync_status = 'pending', sync_action = 'delete', updated_at = ? WHERE id = ?",
+        [new Date().toISOString(), id]
+      );
+      db.runSync(
+        "UPDATE deal_items SET sync_status = 'pending', sync_action = 'delete' WHERE dealId = ?",
+        [id]
+      );
+      db.runSync(
+        "UPDATE payments SET sync_status = 'pending', sync_action = 'delete' WHERE dealId = ?",
+        [id]
+      );
+    }
   });
 
   queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
   queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
   queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+
+  // Fire-and-forget background sync
+  triggerSync();
 }

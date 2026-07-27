@@ -9,7 +9,8 @@ import { StatusBar } from "expo-status-bar";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { queryClient } from "./src/lib/queryClient";
 import { initI18n } from "./src/lib/i18n";
-import { startOfflineSyncListener, pullRemoteData } from "./src/lib/offlineSync";
+import { startSyncListener, triggerSync } from "./src/lib/offlineSync";
+import { startNetInfoListener } from "./src/lib/netInfo";
 import { hydrateToken } from "./src/lib/api";
 import { CustomAlertModal, customAlertRef } from "./src/components/CustomAlert";
 
@@ -20,9 +21,18 @@ export default function App() {
     (async () => {
       await initI18n();
       await hydrateToken();
-      // Fetch online db as source of truth without blocking startup
-      pullRemoteData().catch(console.error);
-      startOfflineSyncListener();
+
+      // Start connectivity monitoring — triggers sync on reconnect
+      startNetInfoListener(() => {
+        triggerSync();
+      });
+
+      // Start periodic sync listener (foreground + interval)
+      startSyncListener();
+
+      // Fire-and-forget initial sync (non-blocking — app renders immediately)
+      triggerSync();
+
       setReady(true);
     })();
   }, []);

@@ -1,145 +1,99 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { WifiOff, Wifi, CloudUpload, CloudDownload, Clock, RefreshCw } from "lucide-react-native";
 import { Button } from "@/components/Button";
-import { getDb } from "@/lib/db";
-import { apiGet, apiPost, apiPut } from "@/lib/api";
-import { queryClient } from "@/lib/queryClient";
+import { performFullSync, getPendingChangesCount, getLastSyncTime, type SyncResult } from "@/lib/offlineSync";
+import { useIsOnline } from "@/lib/netInfo";
 import { Alert } from "@/components/CustomAlert";
 
 export function SyncScreen() {
   const { t } = useTranslation();
+  const isOnline = useIsOnline();
   const [syncing, setSyncing] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
+  const refreshStats = useCallback(() => {
+    setPendingCount(getPendingChangesCount());
+    setLastSync(getLastSyncTime());
+  }, []);
+
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
 
   const addLog = (msg: string) => setLog((prev) => [...prev, msg]);
 
   const handleSync = async () => {
+    if (!isOnline) {
+      Alert.alert("Hors ligne", "Impossible de synchroniser sans connexion internet.");
+      return;
+    }
+
     setSyncing(true);
     setLog([]);
     addLog("Démarrage de la synchronisation...");
-    const db = getDb();
 
     try {
-      // 1. PUSH LOCAL CHANGES
+      addLog(`${pendingCount} modification(s) locale(s) en attente`);
       addLog("Envoi des modifications locales...");
-      const pendingSupermarkets = db.getAllSync("SELECT * FROM supermarkets WHERE sync_status = 'pending'") as any[];
-      for (const sm of pendingSupermarkets) {
-        addLog(`Envoi du client: ${sm.name}`);
-        // If it starts with a local UUID, we might need to POST, else PUT
-        // Just for simplicity we'll assume everything is pushed via POST/PUT
-        try {
-          const newSm: any = await apiPost('/supermarkets', sm);
-          if (newSm && newSm.id) {
-            db.runSync("UPDATE supermarkets SET sync_status = 'synced', id = ? WHERE id = ?", [newSm.id, sm.id]);
-            db.runSync("UPDATE deals SET supermarketId = ? WHERE supermarketId = ?", [newSm.id, sm.id]);
-          } else {
-            db.runSync("UPDATE supermarkets SET sync_status = 'synced' WHERE id = ?", [sm.id]);
-          }
-        } catch (e) {
-          addLog(`Erreur envoi client ${sm.name}`);
-        }
+
+      const result: SyncResult = await performFullSync();
+
+      // Log push results
+      const pushTotal =
+        result.pushed.supermarkets +
+        result.pushed.products +
+        result.pushed.deals +
+        result.pushed.payments;
+      if (pushTotal > 0) {
+        addLog(`✓ ${pushTotal} élément(s) envoyé(s) au serveur`);
+        if (result.pushed.supermarkets > 0)
+          addLog(`  • ${result.pushed.supermarkets} client(s)`);
+        if (result.pushed.products > 0)
+          addLog(`  • ${result.pushed.products} produit(s)`);
+        if (result.pushed.deals > 0)
+          addLog(`  • ${result.pushed.deals} vente(s)`);
+        if (result.pushed.payments > 0)
+          addLog(`  • ${result.pushed.payments} paiement(s)`);
+      } else {
+        addLog("✓ Aucune modification locale à envoyer");
       }
 
-      const pendingDeals = db.getAllSync("SELECT * FROM deals WHERE sync_status = 'pending'") as any[];
-      for (const deal of pendingDeals) {
-        addLog(`Envoi de la vente: ${deal.reference || deal.id}`);
-        // Fetch items and payments
-        const items = db.getAllSync("SELECT * FROM deal_items WHERE dealId = ?", [deal.id]) as any[];
-        const payments = db.getAllSync("SELECT * FROM payments WHERE dealId = ?", [deal.id]) as any[];
-        try {
-          const payload = {
-            id: deal.id,
-            supermarketId: deal.supermarketId,
-            items: items.map(it => ({
-              productId: it.productId,
-              quantity: it.quantity,
-              unitPrice: it.unitPrice
-            })),
-            initialPayment: payments.length > 0 ? payments[0].amount : 0
-          };
-          const newDeal: any = await apiPost('/deals', payload);
-          if (newDeal && newDeal.id) {
-            db.runSync("UPDATE deals SET sync_status = 'synced', id = ? WHERE id = ?", [newDeal.id, deal.id]);
-            db.runSync("UPDATE deal_items SET sync_status = 'synced', dealId = ? WHERE dealId = ?", [newDeal.id, deal.id]);
-            db.runSync("UPDATE payments SET sync_status = 'synced', dealId = ? WHERE dealId = ?", [newDeal.id, deal.id]);
-          } else {
-            db.runSync("UPDATE deals SET sync_status = 'synced' WHERE id = ?", [deal.id]);
-            db.runSync("UPDATE deal_items SET sync_status = 'synced' WHERE dealId = ?", [deal.id]);
-            db.runSync("UPDATE payments SET sync_status = 'synced' WHERE dealId = ?", [deal.id]);
-          }
-        } catch (e) {
-          addLog(`Erreur envoi vente ${deal.id}`);
-        }
-      }
-
-      // 2. PULL REMOTE CHANGES
+      // Log pull results
       addLog("Téléchargement des données serveur...");
-      
-      try {
-        const supermarkets = await apiGet<any[]>("/supermarkets");
-        addLog(`Reçu ${supermarkets.length} clients`);
-        db.withTransactionSync(() => {
-          for (const sm of supermarkets) {
-            db.runSync(
-              "INSERT OR REPLACE INTO supermarkets (id, name, phone, address, totalDebt, sync_status) VALUES (?, ?, ?, ?, ?, 'synced')",
-              [sm.id, sm.name, sm.phone, sm.address || "", sm.totalDebt || 0]
-            );
-          }
-        });
-      } catch (e) {
-        addLog("Erreur téléchargement clients");
+      const pullTotal =
+        result.pulled.supermarkets +
+        result.pulled.products +
+        result.pulled.deals +
+        result.pulled.payments;
+      if (pullTotal > 0) {
+        addLog(`✓ ${pullTotal} élément(s) reçu(s) du serveur`);
+        if (result.pulled.supermarkets > 0)
+          addLog(`  • ${result.pulled.supermarkets} client(s)`);
+        if (result.pulled.products > 0)
+          addLog(`  • ${result.pulled.products} produit(s)`);
+        if (result.pulled.deals > 0)
+          addLog(`  • ${result.pulled.deals} vente(s)`);
+        if (result.pulled.payments > 0)
+          addLog(`  • ${result.pulled.payments} paiement(s)`);
+      } else {
+        addLog("✓ Données locales à jour");
       }
 
-      try {
-        const products = await apiGet<any[]>("/products");
-        addLog(`Reçu ${products.length} produits`);
-        db.withTransactionSync(() => {
-          for (const p of products) {
-            db.runSync(
-              "INSERT OR REPLACE INTO products (id, name, basePrice, stockQty, sync_status) VALUES (?, ?, ?, ?, 'synced')",
-              [p.id, p.name, p.basePrice, p.stockQty || p.stock || 0]
-            );
-          }
-        });
-      } catch (e) {
-        addLog("Erreur téléchargement produits");
+      // Log errors
+      if (result.errors.length > 0) {
+        addLog(`⚠ ${result.errors.length} erreur(s):`);
+        for (const err of result.errors) {
+          addLog(`  ✗ ${err}`);
+        }
       }
 
-      try {
-        const deals = await apiGet<any[]>("/deals");
-        addLog(`Reçu ${deals.length} ventes`);
-        db.withTransactionSync(() => {
-          for (const d of deals) {
-            db.runSync(
-              "INSERT OR REPLACE INTO deals (id, supermarketId, supermarketName, buyerId, buyerName, totalAmount, paid, remaining, status, createdAt, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')",
-              [d.id, d.supermarketId || d.supermarket?.id || "", d.supermarket?.name || "", d.buyerId || d.buyer?.id || "", d.buyer?.name || "", d.totalAmount, d.paymentSummary?.totalPaid || d.paid || 0, d.paymentSummary?.remainingBalance || d.remaining || 0, d.status, d.createdAt || new Date().toISOString()]
-            );
-            if (Array.isArray(d.items)) {
-              for (const it of d.items) {
-                db.runSync(
-                  "INSERT OR REPLACE INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status) VALUES (?, ?, ?, ?, ?, ?, 'synced')",
-                  [it.id || Date.now().toString() + Math.random(), d.id, it.productId || it.product?.id || "", it.productName || it.product?.name || "", it.quantity, it.unitPrice]
-                );
-              }
-            }
-            if (Array.isArray(d.payments)) {
-              for (const p of d.payments) {
-                db.runSync(
-                  "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status) VALUES (?, ?, ?, ?, ?, 'synced')",
-                  [p.id || Date.now().toString() + Math.random(), d.id, p.amount, p.paymentDate || p.createdAt || new Date().toISOString(), p.method || 'CASH']
-                );
-              }
-            }
-          }
-        });
-      } catch (e) {
-        addLog("Erreur téléchargement ventes");
-      }
-
-      addLog("Synchronisation terminée avec succès !");
-      queryClient.resetQueries();
+      addLog("Synchronisation terminée !");
+      refreshStats();
       Alert.alert("Succès", "Synchronisation terminée");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
@@ -150,19 +104,67 @@ export function SyncScreen() {
     }
   };
 
+  const formattedLastSync = lastSync
+    ? new Date(lastSync).toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Jamais";
+
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top", "bottom", "left", "right"]}>
       <View className="p-4 flex-1">
-        <Text className="text-2xl font-bold text-slate-900 mb-4">Synchronisation</Text>
-        <Text className="text-slate-500 mb-6">
-          Synchronisez manuellement vos données avec le serveur pour travailler hors ligne.
+        <Text className="text-2xl font-bold text-slate-900 mb-2">Synchronisation</Text>
+        <Text className="text-slate-500 mb-4">
+          Synchronisez vos données avec le serveur central.
         </Text>
-        
-        <Button onPress={handleSync} loading={syncing} size="lg">
-          Lancer la synchronisation
+
+        {/* Status Cards */}
+        <View className="flex-row gap-3 mb-4">
+          <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              {isOnline ? (
+                <Wifi size={16} color="#22c55e" />
+              ) : (
+                <WifiOff size={16} color="#ef4444" />
+              )}
+              <Text className="text-xs font-medium text-slate-500">Connexion</Text>
+            </View>
+            <Text
+              className={`text-sm font-bold ${isOnline ? "text-green-600" : "text-red-500"}`}
+            >
+              {isOnline ? "En ligne" : "Hors ligne"}
+            </Text>
+          </View>
+
+          <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              <CloudUpload size={16} color="#4f46e5" />
+              <Text className="text-xs font-medium text-slate-500">En attente</Text>
+            </View>
+            <Text className="text-sm font-bold text-slate-900">
+              {pendingCount} modification{pendingCount !== 1 ? "s" : ""}
+            </Text>
+          </View>
+        </View>
+
+        <View className="rounded-2xl border border-slate-200 bg-white p-4 mb-4">
+          <View className="flex-row items-center gap-2">
+            <Clock size={16} color="#64748b" />
+            <Text className="text-xs text-slate-500">Dernière synchronisation:</Text>
+            <Text className="text-xs font-semibold text-slate-700">{formattedLastSync}</Text>
+          </View>
+        </View>
+
+        <Button onPress={handleSync} loading={syncing} size="lg" disabled={!isOnline}>
+          <RefreshCw size={16} color="#fff" />
+          <Text className="font-semibold text-white ml-1">Lancer la synchronisation</Text>
         </Button>
 
-        <View className="mt-6 flex-1 bg-slate-900 rounded-xl p-4">
+        <View className="mt-4 flex-1 bg-slate-900 rounded-xl p-4">
           <Text className="text-white font-bold mb-2">Logs système :</Text>
           <ScrollView>
             {log.length === 0 ? (
