@@ -20,8 +20,8 @@ export default function App() {
     (async () => {
       await initI18n();
       await hydrateToken();
-      // Fetch online db as source of truth first
-      await pullRemoteData();
+      // Fetch online db as source of truth without blocking startup
+      pullRemoteData().catch(console.error);
       startOfflineSyncListener();
       setReady(true);
     })();

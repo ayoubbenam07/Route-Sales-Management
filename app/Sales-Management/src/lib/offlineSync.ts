@@ -245,6 +245,14 @@ export async function pullRemoteData() {
     } catch (e: any) { console.error("Error pulling deals", e?.message); }
     
     console.log("Remote data pull completed.");
+    
+    // Invalidate queries so the UI updates
+    const { queryClient } = await import("./queryClient");
+    const { queryKeys } = await import("../api/queryKeys");
+    queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+    queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+    
   } catch (err: any) {
     console.error('Remote pull error', err?.message || err);
   }

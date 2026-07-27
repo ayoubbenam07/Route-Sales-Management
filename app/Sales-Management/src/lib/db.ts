@@ -5,8 +5,16 @@ let db: SQLite.SQLiteDatabase | null = null;
 let currentDbName = 'sales.db';
 
 export function setDbUser(userId: string | null) {
-  // We no longer change the DB name per user, so products/supermarkets are shared.
-  // Deals will be filtered by buyerId in the queries.
+  const newDbName = userId ? `sales_${userId}.db` : 'sales_default.db';
+  if (currentDbName !== newDbName) {
+    currentDbName = newDbName;
+    if (db) {
+      db.closeSync();
+      db = null;
+    }
+    // Re-initialize the new database
+    initDb();
+  }
 }
 
 export function getDb() {
