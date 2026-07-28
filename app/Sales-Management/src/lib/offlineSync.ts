@@ -172,10 +172,19 @@ async function pushPendingChanges(result: SyncResult): Promise<void> {
               "UPDATE deal_items SET sync_status = 'synced', sync_action = 'synced', dealId = ? WHERE dealId = ?",
               [newDeal.id, deal.id]
             );
-            db.runSync(
-              "UPDATE payments SET sync_status = 'synced', sync_action = 'synced', dealId = ? WHERE dealId = ?",
-              [newDeal.id, deal.id]
-            );
+            if (payments.length > 0) {
+              const firstPaymentId = payments[0].id;
+              db.runSync(
+                "UPDATE payments SET sync_status = 'synced', sync_action = 'synced', dealId = ? WHERE id = ?",
+                [newDeal.id, firstPaymentId]
+              );
+              if (payments.length > 1) {
+                db.runSync(
+                  "UPDATE payments SET dealId = ? WHERE dealId = ? AND id != ?",
+                  [newDeal.id, deal.id, firstPaymentId]
+                );
+              }
+            }
           });
         } else {
           db.withTransactionSync(() => {
@@ -187,10 +196,13 @@ async function pushPendingChanges(result: SyncResult): Promise<void> {
               "UPDATE deal_items SET sync_status = 'synced', sync_action = 'synced' WHERE dealId = ?",
               [deal.id]
             );
-            db.runSync(
-              "UPDATE payments SET sync_status = 'synced', sync_action = 'synced' WHERE dealId = ?",
-              [deal.id]
-            );
+            if (payments.length > 0) {
+              const firstPaymentId = payments[0].id;
+              db.runSync(
+                "UPDATE payments SET sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
+                [firstPaymentId]
+              );
+            }
           });
         }
       } else if (action === "delete") {
@@ -395,74 +407,39 @@ async function pullRemoteChanges(result: SyncResult): Promise<void> {
 
         // Pull deal items
         if (Array.isArray(d.items)) {
+          db.runSync("DELETE FROM deal_items WHERE dealId = ? AND sync_status = 'synced'", [d.id]);
           for (const it of d.items) {
             const itemId = it.id || `${d.id}-${it.productId || it.product?.id || Math.random()}`;
-            const localItem = db.getFirstSync(
-              "SELECT sync_status FROM deal_items WHERE id = ?",
-              [itemId]
-            ) as any;
-
-            if (!localItem) {
-              db.runSync(
-                "INSERT OR REPLACE INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, ?, 'synced', 'synced')",
-                [
-                  itemId,
-                  d.id,
-                  it.productId || it.product?.id || "",
-                  it.productName || it.product?.name || "",
-                  it.quantity,
-                  it.unitPrice,
-                ]
-              );
-            } else if (localItem.sync_status === "synced") {
-              db.runSync(
-                "UPDATE deal_items SET dealId = ?, productId = ?, productName = ?, quantity = ?, unitPrice = ?, sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
-                [
-                  d.id,
-                  it.productId || it.product?.id || "",
-                  it.productName || it.product?.name || "",
-                  it.quantity,
-                  it.unitPrice,
-                  itemId,
-                ]
-              );
-            }
+            db.runSync(
+              "INSERT OR REPLACE INTO deal_items (id, dealId, productId, productName, quantity, unitPrice, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, ?, 'synced', 'synced')",
+              [
+                itemId,
+                d.id,
+                it.productId || it.product?.id || "",
+                it.productName || it.product?.name || "",
+                it.quantity,
+                it.unitPrice,
+              ]
+            );
           }
         }
 
         // Pull payments
         if (Array.isArray(d.payments)) {
+          db.runSync("DELETE FROM payments WHERE dealId = ? AND sync_status = 'synced'", [d.id]);
           for (const p of d.payments) {
             const paymentId = p.id || `${d.id}-pay-${Math.random()}`;
-            const localPayment = db.getFirstSync(
-              "SELECT sync_status FROM payments WHERE id = ?",
-              [paymentId]
-            ) as any;
-
-            if (!localPayment) {
-              db.runSync(
-                "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, 'synced', 'synced')",
-                [
-                  paymentId,
-                  d.id,
-                  p.amount,
-                  p.paymentDate || p.createdAt || new Date().toISOString(),
-                  p.method || "CASH",
-                ]
-              );
-              result.pulled.payments++;
-            } else if (localPayment.sync_status === "synced") {
-              db.runSync(
-                "UPDATE payments SET dealId = ?, amount = ?, paymentDate = ?, method = ?, sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
-                [
-                  d.id,
-                  p.amount,
-                  p.paymentDate || p.createdAt || new Date().toISOString(),
-                  p.method || "CASH",
-                  paymentId,
-                ]
-              );
-            }
+            db.runSync(
+              "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, 'synced', 'synced')",
+              [
+                paymentId,
+                d.id,
+                p.amount,
+                p.paymentDate || p.createdAt || new Date().toISOString(),
+                p.method || "CASH",
+              ]
+            );
+            result.pulled.payments++;
           }
         }
       }

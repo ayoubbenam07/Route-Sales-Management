@@ -16,7 +16,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Alert } from "@/components/CustomAlert";
 
-const INFINITE_STOCK = 999_999_999;
+const INFINITE_STOCK = 999_999;
 const isInfinite = (n: number) => n < 0 || n >= INFINITE_STOCK;
 
 export function ProductsScreen() {

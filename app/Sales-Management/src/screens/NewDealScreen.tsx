@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Modal, FlatList } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Modal, FlatList, KeyboardAvoidingView, Platform } from "react-native";
 import { useTranslation } from "node_modules/react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -82,6 +82,7 @@ export function NewDealScreen() {
       .filter((it) => it.productId)
       .map((it) => ({
         productId: it.productId,
+        productName: products.find((p) => p.id === it.productId)?.name || "",
         quantity: Number(it.quantity) || 0,
         unitPrice: Number(it.unitPrice) || 0,
       }));
@@ -97,9 +98,13 @@ export function NewDealScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <KeyboardAvoidingView 
+      className="flex-1 bg-slate-50"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 140 + insets.bottom, gap: 16 }}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -234,8 +239,8 @@ export function NewDealScreen() {
       </ScrollView>
 
       <View
-        className="absolute inset-x-0 bottom-0 border-t border-indigo-700 bg-indigo-600 px-4 pt-4"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        className="border-t border-indigo-700 bg-indigo-600 px-4 pt-4"
+        style={{ paddingBottom: Math.max(insets.bottom, 36) }}
       >
         <View className="flex-row items-center justify-between gap-3">
           <View>
@@ -367,6 +372,6 @@ export function NewDealScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
