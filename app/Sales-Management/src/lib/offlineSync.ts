@@ -174,14 +174,15 @@ async function pushPendingChanges(result: SyncResult): Promise<void> {
             );
             if (payments.length > 0) {
               const firstPaymentId = payments[0].id;
+              const serverPaymentId = (newDeal.payments && newDeal.payments.length > 0) ? newDeal.payments[0].id : firstPaymentId;
               db.runSync(
-                "UPDATE payments SET sync_status = 'synced', sync_action = 'synced', dealId = ? WHERE id = ?",
-                [newDeal.id, firstPaymentId]
+                "UPDATE payments SET sync_status = 'synced', sync_action = 'synced', dealId = ?, id = ? WHERE id = ?",
+                [newDeal.id, serverPaymentId, firstPaymentId]
               );
               if (payments.length > 1) {
                 db.runSync(
-                  "UPDATE payments SET dealId = ? WHERE dealId = ? AND id != ?",
-                  [newDeal.id, deal.id, firstPaymentId]
+                  "UPDATE payments SET dealId = ? WHERE dealId = ?",
+                  [newDeal.id, deal.id]
                 );
               }
             }
@@ -226,16 +227,29 @@ async function pushPendingChanges(result: SyncResult): Promise<void> {
 
   for (const payment of pendingPayments) {
     try {
-      await apiPost("/payment", {
-        dealId: payment.dealId,
-        amount: payment.amount,
-        method: payment.method,
-        paymentDate: payment.paymentDate,
-      });
-      db.runSync(
-        "UPDATE payments SET sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
-        [payment.id]
-      );
+      const action = payment.sync_action || "create";
+      if (action === "create") {
+        const newPayment: any = await apiPost("/payment", {
+          dealId: payment.dealId,
+          amount: payment.amount,
+          method: payment.method,
+          paymentDate: payment.paymentDate,
+        });
+        if (newPayment && newPayment.id && newPayment.id !== payment.id) {
+          db.runSync(
+            "UPDATE payments SET id = ?, sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
+            [newPayment.id, payment.id]
+          );
+        } else {
+          db.runSync(
+            "UPDATE payments SET sync_status = 'synced', sync_action = 'synced' WHERE id = ?",
+            [payment.id]
+          );
+        }
+      } else if (action === "delete") {
+        await apiDelete(`/payment/${payment.id}`);
+        db.runSync("DELETE FROM payments WHERE id = ?", [payment.id]);
+      }
       result.pushed.payments++;
     } catch (e: any) {
       result.errors.push(`Payment ${payment.id}: ${e?.message || e}`);
@@ -282,14 +296,12 @@ async function pullRemoteChanges(result: SyncResult): Promise<void> {
 
       // Remove locally-synced supermarkets that no longer exist on server
       const serverIds = supermarkets.map((s: any) => s.id);
-      if (serverIds.length > 0) {
-        const allLocal = db.getAllSync(
-          "SELECT id FROM supermarkets WHERE sync_status = 'synced'"
-        ) as any[];
-        for (const local of allLocal) {
-          if (!serverIds.includes(local.id)) {
-            db.runSync("DELETE FROM supermarkets WHERE id = ? AND sync_status = 'synced'", [local.id]);
-          }
+      const allLocal = db.getAllSync(
+        "SELECT id FROM supermarkets WHERE sync_status = 'synced'"
+      ) as any[];
+      for (const local of allLocal) {
+        if (!serverIds.includes(local.id)) {
+          db.runSync("DELETE FROM supermarkets WHERE id = ? AND sync_status = 'synced'", [local.id]);
         }
       }
     });
@@ -323,14 +335,12 @@ async function pullRemoteChanges(result: SyncResult): Promise<void> {
       }
 
       const serverIds = products.map((p: any) => p.id);
-      if (serverIds.length > 0) {
-        const allLocal = db.getAllSync(
-          "SELECT id FROM products WHERE sync_status = 'synced'"
-        ) as any[];
-        for (const local of allLocal) {
-          if (!serverIds.includes(local.id)) {
-            db.runSync("DELETE FROM products WHERE id = ? AND sync_status = 'synced'", [local.id]);
-          }
+      const allLocal = db.getAllSync(
+        "SELECT id FROM products WHERE sync_status = 'synced'"
+      ) as any[];
+      for (const local of allLocal) {
+        if (!serverIds.includes(local.id)) {
+          db.runSync("DELETE FROM products WHERE id = ? AND sync_status = 'synced'", [local.id]);
         }
       }
     });
@@ -429,33 +439,38 @@ async function pullRemoteChanges(result: SyncResult): Promise<void> {
           db.runSync("DELETE FROM payments WHERE dealId = ? AND sync_status = 'synced'", [d.id]);
           for (const p of d.payments) {
             const paymentId = p.id || `${d.id}-pay-${Math.random()}`;
-            db.runSync(
-              "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, 'synced', 'synced')",
-              [
-                paymentId,
-                d.id,
-                p.amount,
-                p.paymentDate || p.createdAt || new Date().toISOString(),
-                p.method || "CASH",
-              ]
-            );
-            result.pulled.payments++;
+            const localPayment = db.getFirstSync(
+              "SELECT sync_status FROM payments WHERE id = ?",
+              [paymentId]
+            ) as any;
+            
+            if (!localPayment || localPayment.sync_status === "synced") {
+              db.runSync(
+                "INSERT OR REPLACE INTO payments (id, dealId, amount, paymentDate, method, sync_status, sync_action) VALUES (?, ?, ?, ?, ?, 'synced', 'synced')",
+                [
+                  paymentId,
+                  d.id,
+                  p.amount,
+                  p.paymentDate || p.createdAt || new Date().toISOString(),
+                  p.method || "CASH",
+                ]
+              );
+              result.pulled.payments++;
+            }
           }
         }
       }
 
       // Remove synced deals that no longer exist on server
       const serverDealIds = deals.map((d: any) => d.id);
-      if (serverDealIds.length > 0) {
-        const allLocalDeals = db.getAllSync(
-          "SELECT id FROM deals WHERE sync_status = 'synced'"
-        ) as any[];
-        for (const local of allLocalDeals) {
-          if (!serverDealIds.includes(local.id)) {
-            db.runSync("DELETE FROM deal_items WHERE dealId = ? AND sync_status = 'synced'", [local.id]);
-            db.runSync("DELETE FROM payments WHERE dealId = ? AND sync_status = 'synced'", [local.id]);
-            db.runSync("DELETE FROM deals WHERE id = ? AND sync_status = 'synced'", [local.id]);
-          }
+      const allLocalDeals = db.getAllSync(
+        "SELECT id FROM deals WHERE sync_status = 'synced'"
+      ) as any[];
+      for (const local of allLocalDeals) {
+        if (!serverDealIds.includes(local.id)) {
+          db.runSync("DELETE FROM deal_items WHERE dealId = ? AND sync_status = 'synced'", [local.id]);
+          db.runSync("DELETE FROM payments WHERE dealId = ? AND sync_status = 'synced'", [local.id]);
+          db.runSync("DELETE FROM deals WHERE id = ? AND sync_status = 'synced'", [local.id]);
         }
       }
     });

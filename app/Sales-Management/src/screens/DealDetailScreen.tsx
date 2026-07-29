@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Printer, Trash2 } from "lucide-react-native";
 import { fetchDeal, deleteDeal } from "@/api/deals";
+import { fetchPaymentsByDeal, deletePayment as deletePaymentApi } from "@/api/payments";
 import { queryKeys } from "@/api/queryKeys";
 
 import { formatMoney } from "@/lib/i18n";
@@ -33,6 +34,24 @@ export function DealDetailScreen() {
     queryKey: queryKeys.deal(dealId),
     queryFn: () => fetchDeal(dealId),
     enabled: !!dealId,
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: queryKeys.paymentsByDeal(dealId),
+    queryFn: () => fetchPaymentsByDeal(dealId),
+    enabled: !!dealId,
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (id: string) => deletePaymentApi(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.paymentsByDeal(dealId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+      queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+    },
+    onError: (err: Error) => Alert.alert("Erreur", err.message),
   });
 
   const deleteMutation = useMutation({
@@ -168,6 +187,54 @@ export function DealDetailScreen() {
           </Text>
         </View>
       </View>
+
+      {payments && payments.length > 0 ? (
+        <View className="mb-6 rounded-xl border border-slate-200 bg-white">
+          <View className="bg-slate-50 px-4 py-3 border-b border-slate-200 rounded-t-xl">
+            <Text className="font-semibold text-slate-800">
+              {isAr ? "سجل المدفوعات" : "Historique des paiements"}
+            </Text>
+          </View>
+          {payments.map((p, i) => (
+            <View key={p.id} className={cn("px-4 py-3 border-slate-100", i > 0 && "border-t")}>
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text className="font-semibold text-slate-800">{fmt(p.amount)}</Text>
+                  <Text className="text-xs text-slate-500 mt-0.5">
+                    {new Date(p.paymentDate).toLocaleString(isAr ? "ar-MA" : "fr-FR", { dateStyle: "medium", timeStyle: "short" })}
+                    {" · "}{p.method}
+                  </Text>
+                </View>
+                {user?.role === "ADMIN" || deal.buyerId === user?.id ? (
+                  <View className="flex-row gap-3">
+                    <Button
+                      variant="destructive"
+                      className="px-3 py-1 h-auto bg-red-50 border-red-200"
+                      loading={deletePaymentMutation.isPending}
+                      onPress={() => {
+                        Alert.alert(
+                          isAr ? "تأكيد" : "Confirmer",
+                          isAr ? "حذف هذه الدفعة؟" : "Supprimer ce paiement ?",
+                          [
+                            { text: t("common.cancel"), style: "cancel" },
+                            {
+                              text: isAr ? "حذف" : "Supprimer",
+                              style: "destructive",
+                              onPress: () => deletePaymentMutation.mutate(p.id)
+                            }
+                          ]
+                        );
+                      }}
+                    >
+                      <Trash2 size={14} color="#dc2626" />
+                    </Button>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View className="gap-3">
         <Button
