@@ -141,7 +141,8 @@ exports.Prisma.SupermarketScalarFieldEnum = {
   name: 'name',
   phone: 'phone',
   address: 'address',
-  totalDebt: 'totalDebt'
+  totalDebt: 'totalDebt',
+  createdById: 'createdById'
 };
 
 exports.Prisma.DealScalarFieldEnum = {

@@ -1365,10 +1365,12 @@ export namespace Prisma {
 
   export type UserCountOutputType = {
     deals: number
+    createdSupermarkets: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     deals?: boolean | UserCountOutputTypeCountDealsArgs
+    createdSupermarkets?: boolean | UserCountOutputTypeCountCreatedSupermarketsArgs
   }
 
   // Custom InputTypes
@@ -1387,6 +1389,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountDealsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DealWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCreatedSupermarketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SupermarketWhereInput
   }
 
 
@@ -1669,6 +1678,7 @@ export namespace Prisma {
     role?: boolean
     createdAt?: boolean
     deals?: boolean | User$dealsArgs<ExtArgs>
+    createdSupermarkets?: boolean | User$createdSupermarketsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -1702,6 +1712,7 @@ export namespace Prisma {
   export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "phone" | "password" | "role" | "createdAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     deals?: boolean | User$dealsArgs<ExtArgs>
+    createdSupermarkets?: boolean | User$createdSupermarketsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1711,6 +1722,7 @@ export namespace Prisma {
     name: "User"
     objects: {
       deals: Prisma.$DealPayload<ExtArgs>[]
+      createdSupermarkets: Prisma.$SupermarketPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2114,6 +2126,7 @@ export namespace Prisma {
   export interface Prisma__UserClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     deals<T extends User$dealsArgs<ExtArgs> = {}>(args?: Subset<T, User$dealsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DealPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    createdSupermarkets<T extends User$createdSupermarketsArgs<ExtArgs> = {}>(args?: Subset<T, User$createdSupermarketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SupermarketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2563,6 +2576,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DealScalarFieldEnum | DealScalarFieldEnum[]
+  }
+
+  /**
+   * User.createdSupermarkets
+   */
+  export type User$createdSupermarketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Supermarket
+     */
+    select?: SupermarketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Supermarket
+     */
+    omit?: SupermarketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SupermarketInclude<ExtArgs> | null
+    where?: SupermarketWhereInput
+    orderBy?: SupermarketOrderByWithRelationInput | SupermarketOrderByWithRelationInput[]
+    cursor?: SupermarketWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SupermarketScalarFieldEnum | SupermarketScalarFieldEnum[]
   }
 
   /**
@@ -3710,6 +3747,7 @@ export namespace Prisma {
     phone: string | null
     address: string | null
     totalDebt: number | null
+    createdById: string | null
   }
 
   export type SupermarketMaxAggregateOutputType = {
@@ -3718,6 +3756,7 @@ export namespace Prisma {
     phone: string | null
     address: string | null
     totalDebt: number | null
+    createdById: string | null
   }
 
   export type SupermarketCountAggregateOutputType = {
@@ -3726,6 +3765,7 @@ export namespace Prisma {
     phone: number
     address: number
     totalDebt: number
+    createdById: number
     _all: number
   }
 
@@ -3744,6 +3784,7 @@ export namespace Prisma {
     phone?: true
     address?: true
     totalDebt?: true
+    createdById?: true
   }
 
   export type SupermarketMaxAggregateInputType = {
@@ -3752,6 +3793,7 @@ export namespace Prisma {
     phone?: true
     address?: true
     totalDebt?: true
+    createdById?: true
   }
 
   export type SupermarketCountAggregateInputType = {
@@ -3760,6 +3802,7 @@ export namespace Prisma {
     phone?: true
     address?: true
     totalDebt?: true
+    createdById?: true
     _all?: true
   }
 
@@ -3855,6 +3898,7 @@ export namespace Prisma {
     phone: string
     address: string | null
     totalDebt: number
+    createdById: string | null
     _count: SupermarketCountAggregateOutputType | null
     _avg: SupermarketAvgAggregateOutputType | null
     _sum: SupermarketSumAggregateOutputType | null
@@ -3882,6 +3926,8 @@ export namespace Prisma {
     phone?: boolean
     address?: boolean
     totalDebt?: boolean
+    createdById?: boolean
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
     deals?: boolean | Supermarket$dealsArgs<ExtArgs>
     _count?: boolean | SupermarketCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["supermarket"]>
@@ -3892,6 +3938,8 @@ export namespace Prisma {
     phone?: boolean
     address?: boolean
     totalDebt?: boolean
+    createdById?: boolean
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
   }, ExtArgs["result"]["supermarket"]>
 
   export type SupermarketSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -3900,6 +3948,8 @@ export namespace Prisma {
     phone?: boolean
     address?: boolean
     totalDebt?: boolean
+    createdById?: boolean
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
   }, ExtArgs["result"]["supermarket"]>
 
   export type SupermarketSelectScalar = {
@@ -3908,19 +3958,26 @@ export namespace Prisma {
     phone?: boolean
     address?: boolean
     totalDebt?: boolean
+    createdById?: boolean
   }
 
-  export type SupermarketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "phone" | "address" | "totalDebt", ExtArgs["result"]["supermarket"]>
+  export type SupermarketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "phone" | "address" | "totalDebt" | "createdById", ExtArgs["result"]["supermarket"]>
   export type SupermarketInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
     deals?: boolean | Supermarket$dealsArgs<ExtArgs>
     _count?: boolean | SupermarketCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type SupermarketIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type SupermarketIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type SupermarketIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
+  }
+  export type SupermarketIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | Supermarket$createdByArgs<ExtArgs>
+  }
 
   export type $SupermarketPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Supermarket"
     objects: {
+      createdBy: Prisma.$UserPayload<ExtArgs> | null
       deals: Prisma.$DealPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -3929,6 +3986,7 @@ export namespace Prisma {
       phone: string
       address: string | null
       totalDebt: number
+      createdById: string | null
     }, ExtArgs["result"]["supermarket"]>
     composites: {}
   }
@@ -4323,6 +4381,7 @@ export namespace Prisma {
    */
   export interface Prisma__SupermarketClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    createdBy<T extends Supermarket$createdByArgs<ExtArgs> = {}>(args?: Subset<T, Supermarket$createdByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     deals<T extends Supermarket$dealsArgs<ExtArgs> = {}>(args?: Subset<T, Supermarket$dealsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DealPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4358,6 +4417,7 @@ export namespace Prisma {
     readonly phone: FieldRef<"Supermarket", 'String'>
     readonly address: FieldRef<"Supermarket", 'String'>
     readonly totalDebt: FieldRef<"Supermarket", 'Float'>
+    readonly createdById: FieldRef<"Supermarket", 'String'>
   }
     
 
@@ -4612,6 +4672,10 @@ export namespace Prisma {
      */
     data: SupermarketCreateManyInput | SupermarketCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SupermarketIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4682,6 +4746,10 @@ export namespace Prisma {
      * Limit how many Supermarkets to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SupermarketIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4748,6 +4816,25 @@ export namespace Prisma {
      * Limit how many Supermarkets to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Supermarket.createdBy
+   */
+  export type Supermarket$createdByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
   }
 
   /**
@@ -8216,7 +8303,8 @@ export namespace Prisma {
     name: 'name',
     phone: 'phone',
     address: 'address',
-    totalDebt: 'totalDebt'
+    totalDebt: 'totalDebt',
+    createdById: 'createdById'
   };
 
   export type SupermarketScalarFieldEnum = (typeof SupermarketScalarFieldEnum)[keyof typeof SupermarketScalarFieldEnum]
@@ -8397,6 +8485,7 @@ export namespace Prisma {
     role?: EnumRoleFilter<"User"> | $Enums.Role
     createdAt?: DateTimeFilter<"User"> | Date | string
     deals?: DealListRelationFilter
+    createdSupermarkets?: SupermarketListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -8407,6 +8496,7 @@ export namespace Prisma {
     role?: SortOrder
     createdAt?: SortOrder
     deals?: DealOrderByRelationAggregateInput
+    createdSupermarkets?: SupermarketOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -8420,6 +8510,7 @@ export namespace Prisma {
     role?: EnumRoleFilter<"User"> | $Enums.Role
     createdAt?: DateTimeFilter<"User"> | Date | string
     deals?: DealListRelationFilter
+    createdSupermarkets?: SupermarketListRelationFilter
   }, "id" | "phone">
 
   export type UserOrderByWithAggregationInput = {
@@ -8507,6 +8598,8 @@ export namespace Prisma {
     phone?: StringFilter<"Supermarket"> | string
     address?: StringNullableFilter<"Supermarket"> | string | null
     totalDebt?: FloatFilter<"Supermarket"> | number
+    createdById?: StringNullableFilter<"Supermarket"> | string | null
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     deals?: DealListRelationFilter
   }
 
@@ -8516,6 +8609,8 @@ export namespace Prisma {
     phone?: SortOrder
     address?: SortOrderInput | SortOrder
     totalDebt?: SortOrder
+    createdById?: SortOrderInput | SortOrder
+    createdBy?: UserOrderByWithRelationInput
     deals?: DealOrderByRelationAggregateInput
   }
 
@@ -8528,6 +8623,8 @@ export namespace Prisma {
     phone?: StringFilter<"Supermarket"> | string
     address?: StringNullableFilter<"Supermarket"> | string | null
     totalDebt?: FloatFilter<"Supermarket"> | number
+    createdById?: StringNullableFilter<"Supermarket"> | string | null
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     deals?: DealListRelationFilter
   }, "id">
 
@@ -8537,6 +8634,7 @@ export namespace Prisma {
     phone?: SortOrder
     address?: SortOrderInput | SortOrder
     totalDebt?: SortOrder
+    createdById?: SortOrderInput | SortOrder
     _count?: SupermarketCountOrderByAggregateInput
     _avg?: SupermarketAvgOrderByAggregateInput
     _max?: SupermarketMaxOrderByAggregateInput
@@ -8553,6 +8651,7 @@ export namespace Prisma {
     phone?: StringWithAggregatesFilter<"Supermarket"> | string
     address?: StringNullableWithAggregatesFilter<"Supermarket"> | string | null
     totalDebt?: FloatWithAggregatesFilter<"Supermarket"> | number
+    createdById?: StringNullableWithAggregatesFilter<"Supermarket"> | string | null
   }
 
   export type DealWhereInput = {
@@ -8751,6 +8850,7 @@ export namespace Prisma {
     role?: $Enums.Role
     createdAt?: Date | string
     deals?: DealCreateNestedManyWithoutBuyerInput
+    createdSupermarkets?: SupermarketCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -8761,6 +8861,7 @@ export namespace Prisma {
     role?: $Enums.Role
     createdAt?: Date | string
     deals?: DealUncheckedCreateNestedManyWithoutBuyerInput
+    createdSupermarkets?: SupermarketUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUpdateInput = {
@@ -8771,6 +8872,7 @@ export namespace Prisma {
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deals?: DealUpdateManyWithoutBuyerNestedInput
+    createdSupermarkets?: SupermarketUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -8781,6 +8883,7 @@ export namespace Prisma {
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deals?: DealUncheckedUpdateManyWithoutBuyerNestedInput
+    createdSupermarkets?: SupermarketUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -8869,6 +8972,7 @@ export namespace Prisma {
     phone: string
     address?: string | null
     totalDebt?: number
+    createdBy?: UserCreateNestedOneWithoutCreatedSupermarketsInput
     deals?: DealCreateNestedManyWithoutSupermarketInput
   }
 
@@ -8878,6 +8982,7 @@ export namespace Prisma {
     phone: string
     address?: string | null
     totalDebt?: number
+    createdById?: string | null
     deals?: DealUncheckedCreateNestedManyWithoutSupermarketInput
   }
 
@@ -8887,6 +8992,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     totalDebt?: FloatFieldUpdateOperationsInput | number
+    createdBy?: UserUpdateOneWithoutCreatedSupermarketsNestedInput
     deals?: DealUpdateManyWithoutSupermarketNestedInput
   }
 
@@ -8896,6 +9002,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     totalDebt?: FloatFieldUpdateOperationsInput | number
+    createdById?: NullableStringFieldUpdateOperationsInput | string | null
     deals?: DealUncheckedUpdateManyWithoutSupermarketNestedInput
   }
 
@@ -8905,6 +9012,7 @@ export namespace Prisma {
     phone: string
     address?: string | null
     totalDebt?: number
+    createdById?: string | null
   }
 
   export type SupermarketUpdateManyMutationInput = {
@@ -8921,6 +9029,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     totalDebt?: FloatFieldUpdateOperationsInput | number
+    createdById?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type DealCreateInput = {
@@ -9140,7 +9249,17 @@ export namespace Prisma {
     none?: DealWhereInput
   }
 
+  export type SupermarketListRelationFilter = {
+    every?: SupermarketWhereInput
+    some?: SupermarketWhereInput
+    none?: SupermarketWhereInput
+  }
+
   export type DealOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SupermarketOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -9296,6 +9415,11 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -9307,6 +9431,7 @@ export namespace Prisma {
     phone?: SortOrder
     address?: SortOrder
     totalDebt?: SortOrder
+    createdById?: SortOrder
   }
 
   export type SupermarketAvgOrderByAggregateInput = {
@@ -9319,6 +9444,7 @@ export namespace Prisma {
     phone?: SortOrder
     address?: SortOrder
     totalDebt?: SortOrder
+    createdById?: SortOrder
   }
 
   export type SupermarketMinOrderByAggregateInput = {
@@ -9327,6 +9453,7 @@ export namespace Prisma {
     phone?: SortOrder
     address?: SortOrder
     totalDebt?: SortOrder
+    createdById?: SortOrder
   }
 
   export type SupermarketSumOrderByAggregateInput = {
@@ -9523,11 +9650,25 @@ export namespace Prisma {
     connect?: DealWhereUniqueInput | DealWhereUniqueInput[]
   }
 
+  export type SupermarketCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput> | SupermarketCreateWithoutCreatedByInput[] | SupermarketUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: SupermarketCreateOrConnectWithoutCreatedByInput | SupermarketCreateOrConnectWithoutCreatedByInput[]
+    createMany?: SupermarketCreateManyCreatedByInputEnvelope
+    connect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+  }
+
   export type DealUncheckedCreateNestedManyWithoutBuyerInput = {
     create?: XOR<DealCreateWithoutBuyerInput, DealUncheckedCreateWithoutBuyerInput> | DealCreateWithoutBuyerInput[] | DealUncheckedCreateWithoutBuyerInput[]
     connectOrCreate?: DealCreateOrConnectWithoutBuyerInput | DealCreateOrConnectWithoutBuyerInput[]
     createMany?: DealCreateManyBuyerInputEnvelope
     connect?: DealWhereUniqueInput | DealWhereUniqueInput[]
+  }
+
+  export type SupermarketUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput> | SupermarketCreateWithoutCreatedByInput[] | SupermarketUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: SupermarketCreateOrConnectWithoutCreatedByInput | SupermarketCreateOrConnectWithoutCreatedByInput[]
+    createMany?: SupermarketCreateManyCreatedByInputEnvelope
+    connect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -9556,6 +9697,20 @@ export namespace Prisma {
     deleteMany?: DealScalarWhereInput | DealScalarWhereInput[]
   }
 
+  export type SupermarketUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput> | SupermarketCreateWithoutCreatedByInput[] | SupermarketUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: SupermarketCreateOrConnectWithoutCreatedByInput | SupermarketCreateOrConnectWithoutCreatedByInput[]
+    upsert?: SupermarketUpsertWithWhereUniqueWithoutCreatedByInput | SupermarketUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: SupermarketCreateManyCreatedByInputEnvelope
+    set?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    disconnect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    delete?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    connect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    update?: SupermarketUpdateWithWhereUniqueWithoutCreatedByInput | SupermarketUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: SupermarketUpdateManyWithWhereWithoutCreatedByInput | SupermarketUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: SupermarketScalarWhereInput | SupermarketScalarWhereInput[]
+  }
+
   export type DealUncheckedUpdateManyWithoutBuyerNestedInput = {
     create?: XOR<DealCreateWithoutBuyerInput, DealUncheckedCreateWithoutBuyerInput> | DealCreateWithoutBuyerInput[] | DealUncheckedCreateWithoutBuyerInput[]
     connectOrCreate?: DealCreateOrConnectWithoutBuyerInput | DealCreateOrConnectWithoutBuyerInput[]
@@ -9568,6 +9723,20 @@ export namespace Prisma {
     update?: DealUpdateWithWhereUniqueWithoutBuyerInput | DealUpdateWithWhereUniqueWithoutBuyerInput[]
     updateMany?: DealUpdateManyWithWhereWithoutBuyerInput | DealUpdateManyWithWhereWithoutBuyerInput[]
     deleteMany?: DealScalarWhereInput | DealScalarWhereInput[]
+  }
+
+  export type SupermarketUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput> | SupermarketCreateWithoutCreatedByInput[] | SupermarketUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: SupermarketCreateOrConnectWithoutCreatedByInput | SupermarketCreateOrConnectWithoutCreatedByInput[]
+    upsert?: SupermarketUpsertWithWhereUniqueWithoutCreatedByInput | SupermarketUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: SupermarketCreateManyCreatedByInputEnvelope
+    set?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    disconnect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    delete?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    connect?: SupermarketWhereUniqueInput | SupermarketWhereUniqueInput[]
+    update?: SupermarketUpdateWithWhereUniqueWithoutCreatedByInput | SupermarketUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: SupermarketUpdateManyWithWhereWithoutCreatedByInput | SupermarketUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: SupermarketScalarWhereInput | SupermarketScalarWhereInput[]
   }
 
   export type DealItemCreateNestedManyWithoutProductInput = {
@@ -9620,6 +9789,12 @@ export namespace Prisma {
     deleteMany?: DealItemScalarWhereInput | DealItemScalarWhereInput[]
   }
 
+  export type UserCreateNestedOneWithoutCreatedSupermarketsInput = {
+    create?: XOR<UserCreateWithoutCreatedSupermarketsInput, UserUncheckedCreateWithoutCreatedSupermarketsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCreatedSupermarketsInput
+    connect?: UserWhereUniqueInput
+  }
+
   export type DealCreateNestedManyWithoutSupermarketInput = {
     create?: XOR<DealCreateWithoutSupermarketInput, DealUncheckedCreateWithoutSupermarketInput> | DealCreateWithoutSupermarketInput[] | DealUncheckedCreateWithoutSupermarketInput[]
     connectOrCreate?: DealCreateOrConnectWithoutSupermarketInput | DealCreateOrConnectWithoutSupermarketInput[]
@@ -9636,6 +9811,16 @@ export namespace Prisma {
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type UserUpdateOneWithoutCreatedSupermarketsNestedInput = {
+    create?: XOR<UserCreateWithoutCreatedSupermarketsInput, UserUncheckedCreateWithoutCreatedSupermarketsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCreatedSupermarketsInput
+    upsert?: UserUpsertWithoutCreatedSupermarketsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCreatedSupermarketsInput, UserUpdateWithoutCreatedSupermarketsInput>, UserUncheckedUpdateWithoutCreatedSupermarketsInput>
   }
 
   export type DealUpdateManyWithoutSupermarketNestedInput = {
@@ -10045,6 +10230,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type SupermarketCreateWithoutCreatedByInput = {
+    id?: string
+    name: string
+    phone: string
+    address?: string | null
+    totalDebt?: number
+    deals?: DealCreateNestedManyWithoutSupermarketInput
+  }
+
+  export type SupermarketUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    name: string
+    phone: string
+    address?: string | null
+    totalDebt?: number
+    deals?: DealUncheckedCreateNestedManyWithoutSupermarketInput
+  }
+
+  export type SupermarketCreateOrConnectWithoutCreatedByInput = {
+    where: SupermarketWhereUniqueInput
+    create: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type SupermarketCreateManyCreatedByInputEnvelope = {
+    data: SupermarketCreateManyCreatedByInput | SupermarketCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type DealUpsertWithWhereUniqueWithoutBuyerInput = {
     where: DealWhereUniqueInput
     update: XOR<DealUpdateWithoutBuyerInput, DealUncheckedUpdateWithoutBuyerInput>
@@ -10071,6 +10284,34 @@ export namespace Prisma {
     status?: EnumDealStatusFilter<"Deal"> | $Enums.DealStatus
     buyerId?: StringFilter<"Deal"> | string
     supermarketId?: StringFilter<"Deal"> | string
+  }
+
+  export type SupermarketUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: SupermarketWhereUniqueInput
+    update: XOR<SupermarketUpdateWithoutCreatedByInput, SupermarketUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<SupermarketCreateWithoutCreatedByInput, SupermarketUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type SupermarketUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: SupermarketWhereUniqueInput
+    data: XOR<SupermarketUpdateWithoutCreatedByInput, SupermarketUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type SupermarketUpdateManyWithWhereWithoutCreatedByInput = {
+    where: SupermarketScalarWhereInput
+    data: XOR<SupermarketUpdateManyMutationInput, SupermarketUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type SupermarketScalarWhereInput = {
+    AND?: SupermarketScalarWhereInput | SupermarketScalarWhereInput[]
+    OR?: SupermarketScalarWhereInput[]
+    NOT?: SupermarketScalarWhereInput | SupermarketScalarWhereInput[]
+    id?: StringFilter<"Supermarket"> | string
+    name?: StringFilter<"Supermarket"> | string
+    phone?: StringFilter<"Supermarket"> | string
+    address?: StringNullableFilter<"Supermarket"> | string | null
+    totalDebt?: FloatFilter<"Supermarket"> | number
+    createdById?: StringNullableFilter<"Supermarket"> | string | null
   }
 
   export type DealItemCreateWithoutProductInput = {
@@ -10124,6 +10365,31 @@ export namespace Prisma {
     productId?: StringFilter<"DealItem"> | string
   }
 
+  export type UserCreateWithoutCreatedSupermarketsInput = {
+    id?: string
+    name: string
+    phone: string
+    password: string
+    role?: $Enums.Role
+    createdAt?: Date | string
+    deals?: DealCreateNestedManyWithoutBuyerInput
+  }
+
+  export type UserUncheckedCreateWithoutCreatedSupermarketsInput = {
+    id?: string
+    name: string
+    phone: string
+    password: string
+    role?: $Enums.Role
+    createdAt?: Date | string
+    deals?: DealUncheckedCreateNestedManyWithoutBuyerInput
+  }
+
+  export type UserCreateOrConnectWithoutCreatedSupermarketsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCreatedSupermarketsInput, UserUncheckedCreateWithoutCreatedSupermarketsInput>
+  }
+
   export type DealCreateWithoutSupermarketInput = {
     id?: string
     createdAt?: Date | string
@@ -10154,6 +10420,37 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserUpsertWithoutCreatedSupermarketsInput = {
+    update: XOR<UserUpdateWithoutCreatedSupermarketsInput, UserUncheckedUpdateWithoutCreatedSupermarketsInput>
+    create: XOR<UserCreateWithoutCreatedSupermarketsInput, UserUncheckedCreateWithoutCreatedSupermarketsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCreatedSupermarketsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCreatedSupermarketsInput, UserUncheckedUpdateWithoutCreatedSupermarketsInput>
+  }
+
+  export type UserUpdateWithoutCreatedSupermarketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deals?: DealUpdateManyWithoutBuyerNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCreatedSupermarketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deals?: DealUncheckedUpdateManyWithoutBuyerNestedInput
+  }
+
   export type DealUpsertWithWhereUniqueWithoutSupermarketInput = {
     where: DealWhereUniqueInput
     update: XOR<DealUpdateWithoutSupermarketInput, DealUncheckedUpdateWithoutSupermarketInput>
@@ -10177,6 +10474,7 @@ export namespace Prisma {
     password: string
     role?: $Enums.Role
     createdAt?: Date | string
+    createdSupermarkets?: SupermarketCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutDealsInput = {
@@ -10186,6 +10484,7 @@ export namespace Prisma {
     password: string
     role?: $Enums.Role
     createdAt?: Date | string
+    createdSupermarkets?: SupermarketUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutDealsInput = {
@@ -10199,6 +10498,7 @@ export namespace Prisma {
     phone: string
     address?: string | null
     totalDebt?: number
+    createdBy?: UserCreateNestedOneWithoutCreatedSupermarketsInput
   }
 
   export type SupermarketUncheckedCreateWithoutDealsInput = {
@@ -10207,6 +10507,7 @@ export namespace Prisma {
     phone: string
     address?: string | null
     totalDebt?: number
+    createdById?: string | null
   }
 
   export type SupermarketCreateOrConnectWithoutDealsInput = {
@@ -10280,6 +10581,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdSupermarkets?: SupermarketUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutDealsInput = {
@@ -10289,6 +10591,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdSupermarkets?: SupermarketUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type SupermarketUpsertWithoutDealsInput = {
@@ -10308,6 +10611,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     totalDebt?: FloatFieldUpdateOperationsInput | number
+    createdBy?: UserUpdateOneWithoutCreatedSupermarketsNestedInput
   }
 
   export type SupermarketUncheckedUpdateWithoutDealsInput = {
@@ -10316,6 +10620,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     totalDebt?: FloatFieldUpdateOperationsInput | number
+    createdById?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type DealItemUpsertWithWhereUniqueWithoutDealInput = {
@@ -10525,6 +10830,14 @@ export namespace Prisma {
     supermarketId: string
   }
 
+  export type SupermarketCreateManyCreatedByInput = {
+    id?: string
+    name: string
+    phone: string
+    address?: string | null
+    totalDebt?: number
+  }
+
   export type DealUpdateWithoutBuyerInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10551,6 +10864,32 @@ export namespace Prisma {
     totalAmount?: FloatFieldUpdateOperationsInput | number
     status?: EnumDealStatusFieldUpdateOperationsInput | $Enums.DealStatus
     supermarketId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type SupermarketUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    totalDebt?: FloatFieldUpdateOperationsInput | number
+    deals?: DealUpdateManyWithoutSupermarketNestedInput
+  }
+
+  export type SupermarketUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    totalDebt?: FloatFieldUpdateOperationsInput | number
+    deals?: DealUncheckedUpdateManyWithoutSupermarketNestedInput
+  }
+
+  export type SupermarketUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    totalDebt?: FloatFieldUpdateOperationsInput | number
   }
 
   export type DealItemCreateManyProductInput = {

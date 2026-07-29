@@ -5,7 +5,13 @@ import prisma from '../config/prisma.js';
  */
 export const getAllSupermarkets = async (req, res) => {
   try {
+    const where = {};
+    if (req.user && req.user.role === 'BUYER') {
+      where.createdById = req.user.id;
+    }
+
     const supermarkets = await prisma.supermarket.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -81,7 +87,7 @@ export const createSupermarket = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Supermarket with this phone already exists' });
     }
 
-    const created = await prisma.supermarket.create({ data: { name: name.trim(), phone: String(phone), address: address ? String(address).trim() : null } });
+    const created = await prisma.supermarket.create({ data: { name: name.trim(), phone: String(phone), address: address ? String(address).trim() : null, createdById: req.user.id } });
 
     return res.status(201).json({ success: true, message: 'Supermarket created', data: created });
   } catch (error) {

@@ -41,7 +41,8 @@ model User {
   createdAt DateTime @default(now())
 
   // Relations
-  deals Deal[] // A buyer can have many deals
+  deals               Deal[] // A buyer can have many deals
+  createdSupermarkets Supermarket[] @relation("CreatedSupermarkets")
 }
 
 model Product {
@@ -55,11 +56,13 @@ model Product {
 }
 
 model Supermarket {
-  id        String  @id @default(uuid())
-  name      String
-  phone     String
-  address   String?
-  totalDebt Float   @default(0.0) // Cached total debt for quick access
+  id          String  @id @default(uuid())
+  name        String
+  phone       String
+  address     String?
+  totalDebt   Float   @default(0.0) // Cached total debt for quick access
+  createdById String?
+  createdBy   User?   @relation("CreatedSupermarkets", fields: [createdById], references: [id])
 
   // Relations
   deals Deal[]
