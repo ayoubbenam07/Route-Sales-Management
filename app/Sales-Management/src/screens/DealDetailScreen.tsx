@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "node_modules/react-i18next";
@@ -26,6 +26,7 @@ export function DealDetailScreen() {
   const dealId = route.params?.dealId as string;
   const user = useAuth((s) => s.user);
   const [printing, setPrinting] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
   const lang = i18n.language;
   const isAr = lang?.startsWith("ar");
@@ -42,16 +43,75 @@ export function DealDetailScreen() {
     enabled: !!dealId,
   });
 
+  // Track how many delete mutations are in-flight to prevent race conditions.
+  // Without this, deleting A then B quickly causes A's onSettled refetch to
+  // overwrite B's optimistic removal, making B "flash back" briefly.
+  const pendingDeletesRef = useRef(0);
+
   const deletePaymentMutation = useMutation({
-    mutationFn: (id: string) => deletePaymentApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.paymentsByDeal(dealId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
-      queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+    mutationFn: async (id: string) => {
+      setDeletingPaymentId(id);
+      pendingDeletesRef.current++;
+      return deletePaymentApi(id);
     },
-    onError: (err: Error) => Alert.alert("Erreur", err.message),
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.paymentsByDeal(dealId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.deal(dealId) });
+
+      // Snapshot the previous values for rollback
+      const previousPayments = queryClient.getQueryData(queryKeys.paymentsByDeal(dealId));
+      const previousDeal = queryClient.getQueryData(queryKeys.deal(dealId));
+
+      // Find the payment being deleted to get its amount
+      const deletedPayment = (previousPayments as any[] | undefined)?.find((p: any) => p.id === id);
+      const deletedAmount = deletedPayment?.amount || 0;
+
+      // Optimistically remove the payment from the cached list
+      queryClient.setQueryData(queryKeys.paymentsByDeal(dealId), (old: any[] | undefined) =>
+        old ? old.filter((p: any) => p.id !== id) : []
+      );
+
+      // Optimistically update the deal summary (Payé / Restant / status)
+      if (deletedAmount > 0) {
+        queryClient.setQueryData(queryKeys.deal(dealId), (old: any) => {
+          if (!old) return old;
+          const newPaid = Math.max(0, (old.paid || 0) - deletedAmount);
+          const newRemaining = (old.total || old.totalAmount || 0) - newPaid;
+          let newStatus = 'UNPAID';
+          if (newRemaining <= 0) newStatus = 'PAID';
+          else if (newPaid > 0) newStatus = 'PARTIAL';
+          return { ...old, paid: newPaid, remaining: Math.max(0, newRemaining), status: newStatus };
+        });
+      }
+
+      return { previousPayments, previousDeal };
+    },
+    onError: (err: Error, _id, context) => {
+      // Rollback to the previous values on error
+      if (context?.previousPayments) {
+        queryClient.setQueryData(queryKeys.paymentsByDeal(dealId), context.previousPayments);
+      }
+      if (context?.previousDeal) {
+        queryClient.setQueryData(queryKeys.deal(dealId), context.previousDeal);
+      }
+      Alert.alert("Erreur", err.message);
+    },
+    onSettled: async () => {
+      pendingDeletesRef.current = Math.max(0, pendingDeletesRef.current - 1);
+      setDeletingPaymentId(null);
+
+      // Only refetch from SQLite when ALL in-flight deletes have completed.
+      // This prevents mutation A's refetch from overwriting mutation B's
+      // optimistic removal (which caused the "flash back" bug).
+      if (pendingDeletesRef.current === 0) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.paymentsByDeal(dealId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+        queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+      }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -209,8 +269,9 @@ export function DealDetailScreen() {
                   <View className="flex-row gap-3">
                     <Button
                       variant="destructive"
-                      className="px-3 py-1 h-auto bg-red-50 border-red-200"
-                      loading={deletePaymentMutation.isPending}
+                      className="px-4 py-2.5 h-auto bg-red-50 border border-red-200 rounded-lg min-w-[44px] min-h-[44px] items-center justify-center"
+                      loading={deletingPaymentId === p.id}
+                      disabled={deletingPaymentId !== null}
                       onPress={() => {
                         Alert.alert(
                           isAr ? "تأكيد" : "Confirmer",
@@ -226,7 +287,7 @@ export function DealDetailScreen() {
                         );
                       }}
                     >
-                      <Trash2 size={14} color="#dc2626" />
+                      <Trash2 size={18} color="#dc2626" />
                     </Button>
                   </View>
                 ) : null}

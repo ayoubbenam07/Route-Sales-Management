@@ -88,6 +88,9 @@ export async function deletePayment(id: string): Promise<void> {
   const payment = db.getFirstSync('SELECT * FROM payments WHERE id = ?', [id]) as any;
   if (!payment) return;
 
+  // Guard: if already marked for deletion, don't re-process (prevents double-tap issues)
+  if (payment.sync_action === 'delete') return;
+
   db.withTransactionSync(() => {
     // Reverse the payment amount from deal
     db.runSync(
@@ -117,5 +120,17 @@ export async function deletePayment(id: string): Promise<void> {
     }
   });
 
-  triggerSync();
+  // Debounce sync: when deleting multiple payments rapidly, only trigger
+  // one sync after the last delete. This prevents the sync's global
+  // queryClient.invalidateQueries() from overwriting optimistic UI updates.
+  debouncedDeleteSync();
+}
+
+let _deleteSyncTimer: ReturnType<typeof setTimeout> | null = null;
+function debouncedDeleteSync() {
+  if (_deleteSyncTimer) clearTimeout(_deleteSyncTimer);
+  _deleteSyncTimer = setTimeout(() => {
+    _deleteSyncTimer = null;
+    triggerSync();
+  }, 600);
 }

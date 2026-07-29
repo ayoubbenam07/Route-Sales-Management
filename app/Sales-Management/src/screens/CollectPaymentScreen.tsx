@@ -79,11 +79,13 @@ export function CollectPaymentScreen() {
     },
     onSuccess: async () => {
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
-      queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.payments });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.supermarkets });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.deals() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.deal(dealId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.buyerDashboard });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.payments });
+      // Also invalidate the specific deal's payments so history shows immediately
+      await queryClient.invalidateQueries({ queryKey: queryKeys.paymentsByDeal(dealId) });
       Alert.alert("Succès", `Paiement enregistré${supermarketName ? ` pour ${supermarketName}` : ""}`);
       navigation.goBack();
     },
