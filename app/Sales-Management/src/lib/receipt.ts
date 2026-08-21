@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 import type { Deal } from "./types";
 import { formatMoney } from "./i18n";
 import { Alert } from "@/components/CustomAlert";
@@ -26,21 +27,22 @@ function buildHtml(deal: Deal, lang: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${isAr ? "إيصال البيع" : "Reçu de vente"} – ${deal.reference}</title>
   <style>
+    @page { margin: 0; padding: 0; size: auto; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
-    body { background: #fff; color: #000; font-size: 12px; padding: 12px; width: 100%; }
+    html, body { background: #fff; color: #000; font-size: 16px; padding: 6px; width: 100%; height: max-content; margin: 0; }
     .center { text-align: center; }
     .bold { font-weight: bold; }
-    .row { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
-    .sep { border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    th, td { padding: 6px 2px; font-size: 11px; vertical-align: top; }
-    th { border-bottom: 1px dashed #000; text-transform: uppercase; font-size: 10px; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 4px; font-size: 15px; }
+    .sep { border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+    th, td { padding: 4px 2px; font-size: 14px; vertical-align: top; }
+    th { border-bottom: 1px dashed #000; text-transform: uppercase; font-size: 12px; font-weight: 800; }
     .right { text-align: right; }
     .center-col { text-align: center; }
-    .brand { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
-    .sub { font-size: 13px; font-weight: bold; margin-top: 4px; }
-    .quote { font-size: 10px; margin-top: 8px; font-style: italic; line-height: 1.35; }
-    .footer { text-align: center; margin-top: 14px; border-top: 1px dashed #000; padding-top: 10px; font-size: 11px; }
+    .brand { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+    .sub { font-size: 16px; font-weight: bold; margin-top: 3px; }
+    .quote { font-size: 13px; margin-top: 5px; font-style: italic; line-height: 1.3; }
+    .footer { text-align: center; margin-top: 8px; border-top: 1px dashed #000; padding-top: 6px; font-size: 14px; }
     .phone { direction: ltr; display: inline-block; font-weight: bold; }
   </style>
 </head>
@@ -92,6 +94,22 @@ function buildHtml(deal: Deal, lang: string) {
 </html>`;
 }
 
+/**
+ * Estimate the PDF page height in CSS pixels based on content.
+ * This avoids a full blank page of whitespace below the receipt.
+ */
+function estimateHeight(itemCount: number): number {
+  const headerBlock = 90;   // brand + subtitle + quote + separator
+  const infoBlock = 100;    // 4 info rows + separator
+  const tableHeader = 35;   // thead row
+  const tableRow = 30;      // each product row
+  const totalsBlock = 80;   // total + paid + remaining + separator
+  const footerBlock = 70;   // contact info
+  const padding = 30;       // body padding + safety margin
+
+  return headerBlock + infoBlock + tableHeader + (itemCount * tableRow) + totalsBlock + footerBlock + padding;
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -101,22 +119,51 @@ function escapeHtml(value: string) {
 }
 
 /**
+ * Sanitize a string for use in a filename:
+ * remove special chars, replace spaces with underscores.
+ */
+function sanitizeFilename(str: string): string {
+  return str
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, "_")
+    .substring(0, 40);
+}
+
+/**
  * Creates a PDF receipt, then opens the native share/print sheet.
  * On Android this is more reliable than printAsync alone (no printer configured).
  */
 export async function printReceipt(deal: Deal, lang: string): Promise<void> {
   const isAr = (lang || "fr").startsWith("ar");
   const html = buildHtml(deal, lang);
+  const itemCount = deal.items?.length || 1;
+  const pageHeight = estimateHeight(itemCount);
 
   try {
     const file = await Print.printToFileAsync({
       html,
-      width: 302, // ~80mm thermal width in CSS pixels
+      width: 220,        // ~58mm thermal paper width in CSS pixels
+      height: pageHeight, // dynamic height to fit content snugly
       base64: false,
     });
 
     if (!file?.uri) {
       throw new Error("PDF URI missing");
+    }
+
+    // Rename the PDF to a readable filename
+    const clientName = sanitizeFilename(deal.supermarketName || "Client");
+    const ref = sanitizeFilename(deal.reference || "");
+    const readableName = `Recu_${clientName}_${ref}.pdf`;
+    const dir = file.uri.substring(0, file.uri.lastIndexOf("/") + 1);
+    const newUri = dir + readableName;
+
+    try {
+      // Rename to readable filename
+      await FileSystem.moveAsync({ from: file.uri, to: newUri });
+      file.uri = newUri;
+    } catch {
+      // Keep original URI if rename fails
     }
 
     const canShare = await Sharing.isAvailableAsync();
